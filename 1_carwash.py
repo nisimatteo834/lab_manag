@@ -4,14 +4,15 @@ import simpy
 import random
 import numpy
 from matplotlib import pyplot
+import math
 
 # **********************************************************************************************************************
 # Constants
 # **********************************************************************************************************************
 RANDOM_SEED = 42
-INTER_ARRIVAL = 2.0
-SERVICE_TIME = 3.0
-NUM_MACHINES = 2
+INTER_ARRIVAL = 5.0
+SERVICE_TIME = 8.0
+NUM_MACHINES = 1
 
 SIM_TIME = 10000
 
@@ -24,6 +25,7 @@ class CarArrival(object):
     def __init__(self, environ, arrival_time):
 
         self.inter_arrival = []
+        self.permanence_time = []
         # the inter-arrival time
         self.arrival_time = arrival_time
 
@@ -43,7 +45,11 @@ class CarArrival(object):
             self.inter_arrival.append(inter_arrival)
 
             # a car has arrived - request carwash to do its job
+            self.tempo_di_arrivo = self.env.now
             self.env.process(carwash.wash())
+            self.tempo_di_permanenza = (self.arrival_time - self.env.now)
+            self.permanence_time.append(self.tempo_di_permanenza)
+
 
 # **********************************************************************************************************************
 # Car wash - it gets an waiting car (FCFS) and performs the service
@@ -56,6 +62,7 @@ class Carwash(object):
         # the service time
         self.service_time = service_time
 
+
         # wash machines
         self.machines = simpy.Resource(env, num_machines)
 
@@ -63,12 +70,14 @@ class Carwash(object):
         self.env = environ
 
         # number of cars in the shop
+        self.buffer_occupancy = []
         self.qsize = 0
 
     def wash(self):
         print("Cars in the shop on arrival: ", self.qsize, self.env.now)
 
         self.qsize += 1
+        self.buffer_occupancy.append(self.qsize)
 
         # request a machine to wash the new coming car
         with self.machines.request() as request:
@@ -86,8 +95,7 @@ class Carwash(object):
             # release the wash machine
             self.qsize -= 1
 
-            self.hofinito = self.env.now - self.sonoarrivata
-            print (self.hofinito)
+            print (self.env.now - self.sonoarrivata)
 
             # the "with" statement implicitly delete request here "releasing" the resource
 
@@ -118,17 +126,22 @@ if __name__ == '__main__':
     # simulate until SIM_TIME
     env.run(until=SIM_TIME)
 
+    print carwash.buffer_occupancy
+
     fig, (series, pdf, cdf) = pyplot.subplots(3, 1)
     series.plot(car.inter_arrival)
     series.set_xlabel("Sample")
     series.set_ylabel("Inter-arrival")
-    pdf.hist(car.inter_arrival, bins=100, normed=True)
+    y = carwash.buffer_occupancy
+    x = numpy.linspace(0,y.__len__(),y.__len__())
+    pdf.plot(x,y)
     pdf.set_xlabel("Time")
     pdf.set_ylabel("Density")
-    pdf.set_xbound(0, 15)
-    cdf.hist(car.inter_arrival, bins=100, cumulative=True, normed=True)
+    pdf.set_xbound(0,y.__len__())
+    cdf.plot(car.permanence_time)
+    #cdf.hist(car.inter_arrival, bins=100, cumulative=True, normed=True)
     cdf.set_xlabel("Time")
     cdf.set_ylabel("P(Arrival time <= x)")
-    cdf.set_ybound(0, 1)
+    cdf.set_ybound(0, 2e-6)
     cdf.set_xbound(0, 15)
     pyplot.show()
