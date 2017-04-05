@@ -11,8 +11,11 @@ import math
 # **********************************************************************************************************************
 RANDOM_SEED = 42
 INTER_ARRIVAL = 5.0
-SERVICE_TIME = 8.0
+SERVICE_TIME = 3.0
 NUM_MACHINES = 1
+
+mu = 1/SERVICE_TIME
+yambda = 1/INTER_ARRIVAL
 
 SIM_TIME = 10000
 
@@ -45,10 +48,7 @@ class CarArrival(object):
             self.inter_arrival.append(inter_arrival)
 
             # a car has arrived - request carwash to do its job
-            self.tempo_di_arrivo = self.env.now
             self.env.process(carwash.wash())
-            self.tempo_di_permanenza = (self.arrival_time - self.env.now)
-            self.permanence_time.append(self.tempo_di_permanenza)
 
 
 # **********************************************************************************************************************
@@ -60,7 +60,7 @@ class Carwash(object):
     def __init__(self, environ, num_machines, service_time):
 
         # the service time
-        self.service_time = service_time
+        self.service_time = random.expovariate(lambd=1.0/service_time)
 
 
         # wash machines
@@ -71,11 +71,13 @@ class Carwash(object):
 
         # number of cars in the shop
         self.buffer_occupancy = []
+        self.permanence_time = []
         self.qsize = 0
 
     def wash(self):
         print("Cars in the shop on arrival: ", self.qsize, self.env.now)
 
+        self.sonoarrivata = self.env.now
         self.qsize += 1
         self.buffer_occupancy.append(self.qsize)
 
@@ -83,10 +85,10 @@ class Carwash(object):
         with self.machines.request() as request:
             yield request
 
-            self.sonoarrivata = self.env.now
+
 
             # once the machine is free, wait until service is finished
-            service_time = 2#random.expovariate(lambd=1.0/self.service_time)
+            service_time = random.expovariate(lambd=1.0/self.service_time)
 
             # yield an event to the simulator
             yield self.env.timeout(service_time)
@@ -95,7 +97,7 @@ class Carwash(object):
             # release the wash machine
             self.qsize -= 1
 
-            print (self.env.now - self.sonoarrivata)
+            self.permanence_time.append(self.env.now - self.sonoarrivata)
 
             # the "with" statement implicitly delete request here "releasing" the resource
 
@@ -126,22 +128,34 @@ if __name__ == '__main__':
     # simulate until SIM_TIME
     env.run(until=SIM_TIME)
 
-    print carwash.buffer_occupancy
 
-    fig, (series, pdf, cdf) = pyplot.subplots(3, 1)
-    series.plot(car.inter_arrival)
+    fig, (series, pdf, cdf, kdf) = pyplot.subplots(4, 1)
+    series.hist(car.inter_arrival,bins = 100, normed=True)
     series.set_xlabel("Sample")
     series.set_ylabel("Inter-arrival")
     y = carwash.buffer_occupancy
     x = numpy.linspace(0,y.__len__(),y.__len__())
-    pdf.plot(x,y)
+    pdf.plot(y)
     pdf.set_xlabel("Time")
-    pdf.set_ylabel("Density")
+    pdf.set_ylabel("BO")
     pdf.set_xbound(0,y.__len__())
-    cdf.plot(car.permanence_time)
-    #cdf.hist(car.inter_arrival, bins=100, cumulative=True, normed=True)
+    cdf.plot(carwash.permanence_time)
     cdf.set_xlabel("Time")
-    cdf.set_ylabel("P(Arrival time <= x)")
-    cdf.set_ybound(0, 2e-6)
-    cdf.set_xbound(0, 15)
+    cdf.set_ylabel("PT")
+
+
+    kdf.hist(car.inter_arrival, bins=100, cumulative=True, normed=True)
+    #kdf.set_xbound(0,14)
+    #kdf.set_ybound(0,0.5)
+    kdf.set_ylabel("P(A_t <= x)")
+
+
+    print(carwash.permanence_time)
+    print(car.inter_arrival)
+
+    print(numpy.mean(carwash.permanence_time))
+
+    ro = 1/(INTER_ARRIVAL/SERVICE_TIME)
+    print (1/(mu-yambda)-(ro/(mu-yambda)))
+    print(ro)
     pyplot.show()
