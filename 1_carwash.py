@@ -94,7 +94,7 @@ class Carwash(object):
             yield self.env.timeout(service_time)
 
 
-            # release the wash machine
+            # release the wash machin
             self.qsize -= 1
 
             self.permanence_time.append(self.env.now - self.sonoarrivata)
