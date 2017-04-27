@@ -1,12 +1,15 @@
 #!/usr/bin/python
-
-
 from collections import deque
-
 from numpy import random
 import simpy
-import sys
-import os
+import time
+import Queue
+
+
+D_BAND = 20e6
+U_BAND = 5e6
+SIZE = 20e6
+clients = 0
 
 #******************************************************************************
 # class representing the shared folders
@@ -16,10 +19,35 @@ class SharedFolder(object):
     def __init__(self, id):
         self.id = id
         self.my_devices = []
+        self.content = {}
 
     # fancy printing as string
     def __str__(self):
         return str(self.id)
+
+    def getId(self):
+        return self.id
+
+    def insertContent(self,file,iduser):
+        self.content['file'] = file
+        self.content['user'] = iduser
+        print (self.content,self.id,time.time())
+        return
+
+    def getContent(self):
+        return self.content
+
+    def getLen(self):
+        return len(self.content)
+
+    def getDevices(self):
+        return self.my_devices
+
+    def getStDevices(self):
+        lista = []
+        for x in self.my_devices:
+            lista.append(x.getId())
+        return lista
 
     # add a device to the list of devices registering this shared folder
     def add_device(self, device):
@@ -32,43 +60,115 @@ class SharedFolder(object):
 #******************************************************************************
 class Device():
     # cosftructor
-    def __init__(self, id,env=''):
+    def __init__(self, id, env=None):
         self.id = id
         self.my_shared_folders = []
+        self.q = Queue.Queue()
         self.env = env
+        self.coda = True
 
     # fancy printing as string
     def __str__(self):
         sf_str = ", ".join([str(i) for i in self.my_shared_folders])
         return "Device: " + str(self.id) + ", Shared Folders [" + sf_str + "]"
 
+    def setEnv(self,env):
+        self.env = env
+
+
+    def getIdFolder(self):
+        x = []
+        for f in self.my_shared_folders:
+            x.append(f.getId())
+        return x
+
+    def getFolderFromId(self,id):
+        for fold in self.my_shared_folders:
+            if str(fold.getId()) == str(id):
+                return fold
+
+
+    def pushQueue(self,item):
+        self.q.put(item)
+
+    def getId(self):
+        return self.id
+
     # add a shared folder to this device
     def add_shared_folder(self, sf):
         self.my_shared_folders.append(sf)
 
-    def imOnline(self):
+
+    def deviceP(self):
+        global clients
         while True:
-            # sample the time to next arrival
-            inter_arrival = random.lognormal(mean=8.492,sigma=1.545)
+            clients += 1
+            print(clients, ' users online')
+            yield self.env.process(self.imOnline(1))
+            clients-=1
+            print(clients,' users online')
+            yield self.env.process(self.imOffline())
 
-            print ('Download!',env.now)
 
-            yield self.env.process(self.imUploading(2))
+    def imOffline(self):
 
-            print ('Sono uscito',env.now)
-            # yield an event to the simulator
-            yield self.env.timeout(inter_arrival)
+        inter_arrival = random.lognormal(mean=7.971,sigma=1.308)
+        print (self.id,'Offline!',env.now)
+        yield self.env.timeout(inter_arrival)
+        print ('Offline finito!',env.now)
 
-            self.inter_arrival.append(inter_arrival)
 
-            # a car has arrived - request carwash to do its job
-            self.env.process(carwash.wash())
+    def imOnline(self,timeout):
+        # sample the time to next arrival
+        inter_arrival = random.lognormal(mean=8.492,sigma=1.545)
 
-    def imUploading(self,duration):
+        try:
+            final = env.now + 10
+            randF = random.choice(self.getIdFolder())
+            while env.now < final:
+                #print (env.now)
+                #controllo che nfile = nfilecartellaup
+                #if self.coda:
+                yield self.env.process(self.inDownload(final))
+                #else:
+                yield self.env.process(self.imUploading(final,randF))
+            print('Finito online',env.now)
 
-        yield env.timeout(duration)
-        print('Upload', env.now)
+        except Exception as e:
+            print (e.message)
 
+
+    def imUploading(self,final,randF):
+
+            print ('randf', randF,self.id)
+            fold = self.getFolderFromId(randF)
+            devices = fold.getDevices()
+
+            for d in devices:
+                if d.getId() != self.id:
+                    stringa = str(self.id) +" a "+ str(d.getId()) + " in folder " + str(fold.getId())
+                    file = {'file': stringa,
+                            'size': SIZE}
+                    if (final - env.now > file['size']/U_BAND):
+                        print (file,env.now)
+                        d.pushQueue(file)
+                        yield env.timeout(file['size']/U_BAND)
+                        print('Upload finito', env.now,self.id,str(d.getId()))
+
+
+    def inDownload(self,final):
+
+        if self.q.empty():
+            yield env.timeout(1)
+        else:
+            while not self.q.empty():
+                x = self.q.get()
+                if (final-env.now>x['size']/D_BAND):
+                    print (x,self.id,env.now)
+                    print ('STO SCARICANDO QUALCOSA',env.now,self.id)
+                    yield env.timeout(x['size']/D_BAND)
+                #self.coda = False
+            print ('Ho scaricato tutto',env.now,self.id)
 
 #******************************************************************************
 # Create the synthetic content synchronization network
@@ -159,7 +259,7 @@ if __name__ == '__main__':
 
     # number of devices in the simulation
     NUM_DEV = 10
-    SIM_TIME = 100
+    SIM_TIME = 50
 
     # collection of devices
     devices = {}
@@ -168,18 +268,19 @@ if __name__ == '__main__':
     shared_folders = {}
 
     # create the content sharing network
+    env = simpy.Environment()
     generate_network(NUM_DEV, devices, shared_folders)
 
 
+    for fold in shared_folders:
+        print (fold,shared_folders[fold].getStDevices())
+
     # DEBUG: dumping the network
     for dev_id in devices:
-      print (str(devices[dev_id]))
+        print (str(devices[dev_id]))
+        devices[dev_id].setEnv(env)
+        env.process(devices[dev_id].deviceP())
 
-
-
-    env = simpy.Environment()
-    d = Device('1', env)
-    env.process(d.imOnline())
     env.run(until=SIM_TIME)
 
 
