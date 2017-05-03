@@ -6,10 +6,13 @@ import time
 import Queue
 
 
+
 D_BAND = 20e6
 U_BAND = 5e6
 SIZE = 20e6
 clients = 0
+u_band_occ = 0
+d_band_occ = 0
 
 #******************************************************************************
 # class representing the shared folders
@@ -123,14 +126,13 @@ class Device():
         inter_arrival = random.lognormal(mean=8.492,sigma=1.545)
 
         try:
-            final = env.now + 10
+            final = env.now + inter_arrival
             randF = random.choice(self.getIdFolder())
+
             while env.now < final:
-                #print (env.now)
-                #controllo che nfile = nfilecartellaup
-                #if self.coda:
+                inter_upload = random.lognormal(mean = 3.748, sigma=2.286)
                 yield self.env.process(self.inDownload(final))
-                #else:
+                yield self.env.timeout(inter_upload)
                 yield self.env.process(self.imUploading(final,randF))
             print('Finito online',env.now)
 
@@ -140,35 +142,48 @@ class Device():
 
     def imUploading(self,final,randF):
 
+            global u_band_occ
+
             print ('randf', randF,self.id)
             fold = self.getFolderFromId(randF)
             devices = fold.getDevices()
 
+            stringa = str(self.id) + " in folder " + str(fold.getId())
+            file = {'file': stringa,
+                    'size': SIZE}
+
             for d in devices:
                 if d.getId() != self.id:
-                    stringa = str(self.id) +" a "+ str(d.getId()) + " in folder " + str(fold.getId())
-                    file = {'file': stringa,
-                            'size': SIZE}
+                    # stringa = str(self.id) +" a "+ str(d.getId()) + " in folder " + str(fold.getId())
+                    # file = {'file': stringa,
+                    #         'size': SIZE}
+
                     if (final - env.now > file['size']/U_BAND):
+                        u_band_occ = u_band_occ + U_BAND
                         print (file,env.now)
                         d.pushQueue(file)
                         yield env.timeout(file['size']/U_BAND)
+                        u_band_occ = u_band_occ - U_BAND
                         print('Upload finito', env.now,self.id,str(d.getId()))
 
 
     def inDownload(self,final):
 
-        if self.q.empty():
-            yield env.timeout(1)
-        else:
-            while not self.q.empty():
-                x = self.q.get()
-                if (final-env.now>x['size']/D_BAND):
-                    print (x,self.id,env.now)
-                    print ('STO SCARICANDO QUALCOSA',env.now,self.id)
-                    yield env.timeout(x['size']/D_BAND)
-                #self.coda = False
-            print ('Ho scaricato tutto',env.now,self.id)
+        # if self.q.empty():
+        #     yield env.timeout(1)
+        # else:
+        #
+        global d_band_occ
+        while not self.q.empty():
+            x = self.q.get()
+            if (final-env.now>x['size']/D_BAND):
+                d_band_occ = d_band_occ + D_BAND
+                print (x,self.id,env.now)
+                print ('STO SCARICANDO QUALCOSA',env.now,self.id)
+                yield env.timeout(x['size']/D_BAND)
+                d_band_occ = d_band_occ - D_BAND
+            #self.coda = False
+        print ('Ho scaricato tutto',env.now,self.id)
 
 #******************************************************************************
 # Create the synthetic content synchronization network
@@ -259,7 +274,7 @@ if __name__ == '__main__':
 
     # number of devices in the simulation
     NUM_DEV = 10
-    SIM_TIME = 50
+    SIM_TIME = 500
 
     # collection of devices
     devices = {}
@@ -282,7 +297,6 @@ if __name__ == '__main__':
         env.process(devices[dev_id].deviceP())
 
     env.run(until=SIM_TIME)
-
 
 
 
