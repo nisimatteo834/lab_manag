@@ -4,6 +4,7 @@ import simpy
 import random
 import numpy
 from decimal import Decimal
+from matplotlib import pyplot
 
 
 # **********************************************************************************************************************
@@ -11,7 +12,7 @@ from decimal import Decimal
 # **********************************************************************************************************************
 RANDOM_SEED = 42
 INTER_ARRIVAL = 25
-SERVICE_TIME = 1
+SERVICE_TIME = 15 #todo put it to 1 in order to have a good plot
 NUM_MACHINES = 1
 
 SIM_TIME = 100000
@@ -65,12 +66,18 @@ class Carwash(object):
         # number of cars in the shop
         self.qsize = 0
 
+        self.q_memory = []
+
         self.response_time = []
 
     def wash(self):
         print("Cars in the shop on arrival: ", self.qsize)
 
+        self.q_memory.append(self.qsize)
+
         self.qsize += 1
+
+
 
         enter = self.env.now
 
@@ -102,8 +109,11 @@ if __name__ == '__main__':
     # setup and perform the simulation
     # ********************************
 
-    averag = []
-    theoretical  = []
+    theoretical_buffer_occupancy = []
+    average_buffer_occupancy = []
+    average_response_time = []
+    theoretical_response_time = []
+    ro_vector = []
 
     for x in range(SERVICE_TIME,INTER_ARRIVAL,1):
         env = simpy.Environment()
@@ -121,11 +131,36 @@ if __name__ == '__main__':
         env.run(until=SIM_TIME)
 
 
-        averag.append(numpy.mean(carwash.response_time))
+        average_response_time.append(numpy.mean(carwash.response_time))
+        theoretical_response_time.append(float(1)/(float(1)/x-float(1)/INTER_ARRIVAL))
+
+        average_buffer_occupancy.append(numpy.mean(carwash.q_memory))
+        theoretical_buffer_occupancy.append(theoretical_response_time[-1]/INTER_ARRIVAL)
         ro = float(x)/INTER_ARRIVAL
-        print (ro)
-        print ('ro',ro,'E[T]',float(1)/(float(1)/x-float(1)/INTER_ARRIVAL))
-        theoretical.append(float(1)/(float(1)/x-float(1)/INTER_ARRIVAL))
+        ro_vector.append(ro)
+
+
+    print ('AVG BUFFER OCCUPANCY',average_buffer_occupancy)
+    print ('TH BUFFER OCCUPANCY', theoretical_buffer_occupancy)
+    print ('AVG RESPONSE TIME',average_response_time)
+    print ('TH RESPONSE TIME', theoretical_response_time)
+
+    fig, (buff, resp) = pyplot.subplots(2,1)
+    buff.plot(average_buffer_occupancy,label='AVG BUFF')
+    buff.plot(theoretical_buffer_occupancy,label='TH BUFF')
+
+    handles, labels = buff.get_legend_handles_labels()
+    buff.legend(handles, labels)
+
+
+    resp.plot(average_response_time,label='AVG RESP')
+    resp.plot(theoretical_response_time,label='TH RESP')
+
+    handles, labels = resp.get_legend_handles_labels()
+    resp.legend(handles, labels)
+
+    pyplot.show()
+
 
 
 
