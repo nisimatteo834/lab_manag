@@ -12,7 +12,7 @@ from matplotlib import pyplot
 # **********************************************************************************************************************
 RANDOM_SEED = 42
 INTER_ARRIVAL = 25
-SERVICE_TIME = 15 #todo put it to 1 in order to have a good plot
+SERVICE_TIME = 1#todo put it to 1 in order to have a good plot
 NUM_MACHINES = 1
 
 SIM_TIME = 100000
@@ -146,15 +146,15 @@ if __name__ == '__main__':
     print ('TH RESPONSE TIME', theoretical_response_time)
 
     fig, (buff, resp) = pyplot.subplots(2,1)
-    buff.plot(average_buffer_occupancy,label='AVG BUFF')
-    buff.plot(theoretical_buffer_occupancy,label='TH BUFF')
+    buff.plot(ro_vector,average_buffer_occupancy,label='AVG BUFF')
+    buff.plot(ro_vector,theoretical_buffer_occupancy,label='TH BUFF')
 
     handles, labels = buff.get_legend_handles_labels()
     buff.legend(handles, labels)
 
 
-    resp.plot(average_response_time,label='AVG RESP')
-    resp.plot(theoretical_response_time,label='TH RESP')
+    resp.plot(ro_vector,average_response_time,label='AVG RESP')
+    resp.plot(ro_vector,theoretical_response_time,label='TH RESP')
 
     handles, labels = resp.get_legend_handles_labels()
     resp.legend(handles, labels)
