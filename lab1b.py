@@ -3,7 +3,7 @@ import random
 import numpy
 from matplotlib import pyplot
 import math
-
+import Queue
 
 class Arrival(object):
 
@@ -34,7 +34,6 @@ class Arrival(object):
             interval = random.expovariate(lambd=1.0/self.arrivalRate)
             self.batch.append(random.uniform(self.minBatch, self.maxBatch))
 
-
             self.interArrival.append(interval)
             yield self.env.timeout(self.interArrival[self.count])
             print "A no. of", int(self.batch[-1]), "packets have arrived at ", self.env.now
@@ -62,7 +61,7 @@ class Service(object):
         # counter to choose the time to complete a job
         self.count = 0
 
-        # queue size
+        # queue size A QUEUE MIGHT BE IMPLEMENTED
         self.qsize = 0
 
         self.bufSize = bufSize
@@ -103,15 +102,16 @@ class Service(object):
 if __name__ == "__main__":
 
     ARRIVAL_RATE = 11.1
-    SERVICE_RATE = 0.1  # make it change!
+    SERVICE_RATE = 10# make it change!
     NUM_SERVERS = 3
 
     RANDOM_SEED = 42
-    SIM_TIME = 10000
+    SIM_TIME = 1000
 
     MIN_BATCH = 2
     MAX_BATCH = 5
     BUFFER_SIZE = 30
+
 
     meanJob = []  # average response time
     rho = []
