@@ -167,7 +167,7 @@ class Service(object):
                     yield request
 
                     # start the job
-                    print "Service has started in Back Server at time: ", self.env.now
+                    print ("Service has started in Back Server at time: ", self.env.now)
 
                     # packet that is being served is removed from buffer
 
@@ -181,7 +181,7 @@ class Service(object):
                     self.endTime2.append(self.env.now)
 
                     self.q2 -= 1
-                    print "Packets in the Back Server buffer: ", self.q2
+                    print ("Packets in the Back Server buffer: ", self.q2)
 
                     # increment the counter to choose the correct time to finish the job
                     self.countJob2 += 1

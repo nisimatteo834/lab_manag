@@ -17,7 +17,7 @@ INTER_ARRIVAL = 15
 SERVICE_TIME = 1#todo put it to 1 in order to have a good plot
 NUM_MACHINES = 1
 MAX_BATCH = 10
-SIM_TIME = 1000000
+SIM_TIME = 100000
 MIN_BATCH = 1
 BUFFER_SIZE = 15
 
@@ -148,7 +148,7 @@ if __name__ == '__main__':
 
     #todo scegliere come far variare il buffer size o il max batch per valutare
 
-    for x in range(SERVICE_TIME+1,3,1):
+    for x in range(SERVICE_TIME,INTER_ARRIVAL,1):
         env = simpy.Environment()
 
         # car arrival
@@ -185,21 +185,25 @@ if __name__ == '__main__':
     print ('TOTAL PACKET ', totalPacket)
     print ('DROP OCCURRENCES', dropOccurrence)
 
-    confidence_interval = 0.60*average_response_time[2]
+    confidence_interval = 0.90*average_response_time[1]
     flag = 1
     end_tran = 0
     a = 0
-    # for a in range(len(testrun)):
-    #     media = numpy.mean(testrun[a:-1])
-    #     if (media > confidence_interval):
-    #         flag = a
-    #         break
+    for a in range(0,len(testrun),10):
+        media = numpy.mean(testrun[a:a+10])
+        if (media > confidence_interval):
+            flag = a+10
+            break
 
-    print numpy.mean(testrun[a:-1])
-    print average_response_time[2]
-    print confidence_interval
-    print len(testrun)
+
+    print ('MEAN OF ALL THE VECTOR',numpy.mean(testrun))
+    print ('MEAN OF VECOTR WITHOUT TRANSIENT',numpy.mean(testrun[flag:-1]))
+    print ('MEAN OF THE TRANSIENT',numpy.mean(testrun[0:flag]))
+    print ('CONFIDENCE INTERVAL',confidence_interval)
+    print (average_response_time[2])
+
     pyplot.plot(testrun)
+
 
     fig, (buff, resp) = pyplot.subplots(2,1)
     buff.plot(s_t_vector,average_buffer_occupancy,label='AVG BUFF')

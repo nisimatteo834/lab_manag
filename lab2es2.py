@@ -4,19 +4,13 @@ from numpy import random
 import simpy
 import time
 import Queue
-from matplotlib import pyplot
-import numpy
-
 
 D_BAND = 20e6
 U_BAND = 5e6
-SIZE = 20e6
+SIZE = 40e6
 clients = 0
 u_band_occ = 0
 d_band_occ = 0
-u_used_v = []
-d_used_v = []
-SIM_TIME = 5000
 
 #******************************************************************************
 # class representing the shared folders
@@ -38,7 +32,7 @@ class SharedFolder(object):
     def insertContent(self,file,iduser):
         self.content['file'] = file
         self.content['user'] = iduser
-        #print (self.content,self.id,time.time())
+        print (self.content,self.id,time.time())
         return
 
     def getContent(self):
@@ -70,10 +64,6 @@ class Device():
     def __init__(self, id, env=None):
         self.id = id
         self.my_shared_folders = []
-        self.my_upload_band_v = []
-        self.my_download_band_v = []
-        self.my_u_used = 0
-        self.my_d_used = 0
         self.q = Queue.Queue()
         self.env = env
         self.coda = True
@@ -114,19 +104,19 @@ class Device():
         global clients
         while True:
             clients += 1
-            #print(clients, ' users online')
+            print(clients, ' users online')
             yield self.env.process(self.imOnline(1))
             clients-=1
-            #print(clients,' users online')
+            print(clients,' users online')
             yield self.env.process(self.imOffline())
 
 
     def imOffline(self):
 
         inter_arrival = random.lognormal(mean=7.971,sigma=1.308)
-        #print (self.id,'Offline!',env.now)
+        print (self.id,'Offline!',env.now)
         yield self.env.timeout(inter_arrival)
-        #print ('Offline finito!',env.now)
+        print ('Offline finito!',env.now)
 
 
     def imOnline(self,timeout):
@@ -142,7 +132,7 @@ class Device():
                 yield self.env.process(self.inDownload(final))
                 yield self.env.timeout(inter_upload)
                 yield self.env.process(self.imUploading(final,randF))
-            #print('Finito online',env.now)
+            print('Finito online',env.now)
 
         except Exception as e:
             print (e.message)
@@ -151,9 +141,8 @@ class Device():
     def imUploading(self,final,randF):
 
             global u_band_occ
-            global u_used_v
 
-            #print ('randf', randF,self.id)
+            print ('randf', randF,self.id)
             fold = self.getFolderFromId(randF)
             devices = fold.getDevices()
 
@@ -168,19 +157,12 @@ class Device():
                     #         'size': SIZE}
 
                     if (final - env.now > file['size']/U_BAND):
-                        # self.my_u_used = self.my_u_used + U_BAND
-                        # self.my_upload_band_v.append(self.my_u_used)
                         u_band_occ = u_band_occ + U_BAND
-                        u_used_v.append(u_band_occ)
-                        #print ('STO UPLOAD',self.id,u_band_occ)
-
-                        #print (file,env.now)
+                        print (file,env.now)
                         d.pushQueue(file)
                         yield env.timeout(file['size']/U_BAND)
                         u_band_occ = u_band_occ - U_BAND
-                        u_used_v.append(u_band_occ)
-                        #print('Upload finito', env.now,self.id,str(d.getId()))
-                        #print ('UPLOAD FIN',self.id,u_band_occ)
+                        print('Upload finito', env.now,self.id,str(d.getId()))
 
 
     def inDownload(self,final):
@@ -190,19 +172,16 @@ class Device():
         # else:
         #
         global d_band_occ
-        global d_used_v
         while not self.q.empty():
             x = self.q.get()
             if (final-env.now>x['size']/D_BAND):
                 d_band_occ = d_band_occ + D_BAND
-                d_used_v.append(d_band_occ)
-                #print (x,self.id,env.now)
-                #print ('STO SCARICANDO QUALCOSA',env.now,self.id)
+                print (x,self.id,env.now)
+                print ('STO SCARICANDO QUALCOSA',env.now,self.id)
                 yield env.timeout(x['size']/D_BAND)
                 d_band_occ = d_band_occ - D_BAND
-                d_used_v.append(d_band_occ)
             #self.coda = False
-        #print ('Ho SCARICATO tutto',env.now,self.id)
+        print ('Ho scaricato tutto',env.now,self.id)
 
 #******************************************************************************
 # Create the synthetic content synchronization network
@@ -290,10 +269,10 @@ def generate_network(num_dv, devices, shared_folders):
 # implements the simulation
 #******************************************************************************
 if __name__ == '__main__':
-    global u_used_v
-    global d_used_v
+
     # number of devices in the simulation
-    NUM_DEV = 1000
+    NUM_DEV = 10
+    SIM_TIME = 500
 
     # collection of devices
     devices = {}
@@ -301,30 +280,21 @@ if __name__ == '__main__':
     # collection of shared folders
     shared_folders = {}
 
-    u_used_v.append(0)
-    d_used_v.append(0)
     # create the content sharing network
     env = simpy.Environment()
     generate_network(NUM_DEV, devices, shared_folders)
 
 
-    #for fold in shared_folders:
-        #print (fold,shared_folders[fold].getStDevices())
+    for fold in shared_folders:
+        print (fold,shared_folders[fold].getStDevices())
 
     # DEBUG: dumping the network
     for dev_id in devices:
-        #print (str(devices[dev_id]))
+        print (str(devices[dev_id]))
         devices[dev_id].setEnv(env)
         env.process(devices[dev_id].deviceP())
 
     env.run(until=SIM_TIME)
 
-    fig,(down,up) = pyplot.subplots(2,1)
-    x = numpy.linspace(0,len(d_used_v),len(d_used_v),endpoint=True)
-    down.bar(x,d_used_v)
-    x = numpy.linspace(0,len(u_used_v),len(u_used_v),endpoint=True)
-    up.bar(x,u_used_v)
-
-    pyplot.show()
 
 
