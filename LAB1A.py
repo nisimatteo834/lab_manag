@@ -12,44 +12,32 @@ from matplotlib import pyplot
 # **********************************************************************************************************************
 RANDOM_SEED = 42
 INTER_ARRIVAL = 25
-SERVICE_TIME = 1#todo put it to 1 in order to have a good plot
+SERVICE_TIME = 1
 NUM_MACHINES = 1
-
 SIM_TIME = 100000
 
-# **********************************************************************************************************************
-# Car arrival
-# **********************************************************************************************************************
-class CarArrival(object):
+class PacketArrival(object):
 
-    # constructor
     def __init__(self, environ, arrival_time):
 
-        # the inter-arrival time
         self.arrival_time = arrival_time
-
-        # the environment
         self.env = environ
 
-    # execute the process
-    def arrival_process(self, carwash):
+    def arrival_process(self, buffer):
         while True:
 
             # sample the time to next arrival
             inter_arrival = random.expovariate(lambd=1.0/self.arrival_time)
-
-
-            # yield an event to the simulator
             yield self.env.timeout(inter_arrival)
 
-            # a car has arrived - request carwash to do its job
-            self.env.process(carwash.wash())
+            # a packet has arrived - request buffer to do its job
+            self.env.process(buffer.process())
 
 
 # **********************************************************************************************************************
-# Car wash - it gets an waiting car (FCFS) and performs the service
+# Car process - it gets an waiting car (FCFS) and performs the service
 # **********************************************************************************************************************
-class Carwash(object):
+class Buffer(object):
 
     # constructor
     def __init__(self, environ, num_machines, service_time):
@@ -57,7 +45,7 @@ class Carwash(object):
         # the service time
         self.service_time = service_time
 
-        # wash machines
+        # process machines
         self.machines = simpy.Resource(env, num_machines)
 
         # the environment
@@ -70,18 +58,17 @@ class Carwash(object):
 
         self.response_time = []
 
-    def wash(self):
+    def process(self):
         print("Cars in the shop on arrival: ", self.qsize)
 
         self.q_memory.append(self.qsize)
-
         self.qsize += 1
 
 
 
         enter = self.env.now
 
-        # request a machine to wash the new coming car
+        # request a machine to process the new coming car
         with self.machines.request() as request:
             yield request
 
@@ -91,7 +78,7 @@ class Carwash(object):
             # yield an event to the simulator
             yield self.env.timeout(service_time)
 
-            # release the wash machine
+            # release the process machine
             self.qsize -= 1
 
             self.response_time.append(self.env.now-enter)
@@ -117,24 +104,21 @@ if __name__ == '__main__':
 
     for x in range(SERVICE_TIME,INTER_ARRIVAL,1):
         env = simpy.Environment()
-
-        # car arrival
-        car_arrival = CarArrival(env, INTER_ARRIVAL)
-
-        # carwash
-        carwash = Carwash(env, NUM_MACHINES, x)
+        packet_arrival = PacketArrival(env, INTER_ARRIVAL)
+        buffer = Buffer(env, NUM_MACHINES, x)
 
         # start the arrival process
-        env.process(car_arrival.arrival_process(carwash))
+        env.process(packet_arrival.arrival_process(buffer))
 
         # simulate until SIM_TIME
         env.run(until=SIM_TIME)
 
-
-        average_response_time.append(numpy.mean(carwash.response_time))
+        if (x==INTER_ARRIVAL-1):
+            occupancy_for_hist = buffer.q_memory
+        average_response_time.append(numpy.mean(buffer.response_time))
         theoretical_response_time.append(float(1)/(float(1)/x-float(1)/INTER_ARRIVAL))
 
-        average_buffer_occupancy.append(numpy.mean(carwash.q_memory))
+        average_buffer_occupancy.append(numpy.mean(buffer.q_memory))
         theoretical_buffer_occupancy.append(theoretical_response_time[-1]/INTER_ARRIVAL)
         ro = float(x)/INTER_ARRIVAL
         ro_vector.append(ro)
@@ -158,6 +142,9 @@ if __name__ == '__main__':
 
     handles, labels = resp.get_legend_handles_labels()
     resp.legend(handles, labels)
+
+    pyplot.figure(2)
+    pyplot.hist(occupancy_for_hist)
 
     pyplot.show()
 

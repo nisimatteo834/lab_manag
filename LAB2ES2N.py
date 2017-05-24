@@ -7,7 +7,8 @@ import Queue
 
 D_BAND = 20e6
 U_BAND = 5e6
-SIZE = 40e6
+SIZE = 10e6
+MAX_CHUNCK = 1e6
 clients = 0
 u_band_occ = 0
 d_band_occ = 0
@@ -67,6 +68,7 @@ class Device():
         self.id = id
         self.final = 0
         self.my_shared_folders = []
+        self.downloaded_files = []
         self.q = Queue.Queue()
         self.env = env
         self.coda = True
@@ -84,6 +86,9 @@ class Device():
 
     def getFinal(self):
         return self.final
+
+    def getDownloadedFiles(self):
+        return self.downloaded_files
 
     def getIdFolder(self):
         x = []
@@ -154,28 +159,27 @@ class Device():
 
             global u_band_occ
 
-            print ('randf', randF,self.id)
+            #print ('randf', randF,self.id)
             fold = self.getFolderFromId(randF)
             devices = fold.getDevices()
 
-            stringa = str(self.id) + " in folder " + str(fold.getId())
+            stringa = str(self.id) + " in folder " + str(fold.getId()) + " " + str(self.env.now)
             file = {'file': stringa,
                     'folder': str(fold.getId()),
                     'size': SIZE}
 
-            for d in devices:
-                if d.getId() != self.id:
-                    # stringa = str(self.id) +" a "+ str(d.getId()) + " in folder " + str(fold.getId())
-                    # file = {'file': stringa,
-                    #         'size': SIZE}
+            if (final - env.now > file['size'] / U_BAND):
+                u_band_occ = u_band_occ + U_BAND
+                #print (file, env.now)
+                yield env.timeout(file['size'] / U_BAND)
+                self.downloaded_files.append(file)
 
-                    if (final - env.now > file['size']/U_BAND):
-                        u_band_occ = u_band_occ + U_BAND
-                        print (file,env.now)
-                        yield env.timeout(file['size']/U_BAND)
-                        d.pushQueue(file)
-                        u_band_occ = u_band_occ - U_BAND
-                        print('Upload finito', env.now,self.id,str(d.getId()))
+                for d in devices:
+                    if d.getId() != self.id:
+                            d.pushQueue(file)
+                            u_band_occ = u_band_occ - U_BAND
+                            #print('Upload finito', env.now, self.id, str(d.getId()))
+
 
 
     def inDownload(self,final):
@@ -193,30 +197,44 @@ class Device():
                 folder_id = x['folder']
                 folder = self.getFolderFromId(folder_id)
 
+
                 if len(folder.getStDevices()) != 1 :
-                    available_device = 0
-                    for device in folder.getStDevices():
-                        if (available_device*x['size']/D_BAND < users_online[device]-env.now):
-                            available_device += 1
-                            print (self.getId(),'is downloading from',device)
-                            d_band_occ = d_band_occ + D_BAND
+                    downloaded_chunck = 0
+                    chuncks = {}
+                    print ('Je suis', str(self.getId()),self.env.now)  # todo ERASE
+
+                    while downloaded_chunck != int(x['size']/MAX_CHUNCK):
+                        print ('File',x['file'],'shared with',folder.getStDevices())
+                        count = 0
+                        for device in folder.getDevices():
+                            if (users_online[device.getId()] > env.now + MAX_CHUNCK / U_BAND) and (x in device.getDownloadedFiles()) :
+                                count = count + 1
+                                print ('count:',count)
+                                print (str(device.getId()), 'has this files',x['file'])#, device.getDownloadedFiles())
+                                if not chuncks.has_key(downloaded_chunck):
+                                    chuncks[downloaded_chunck] = device.getId()
+                                    print (str(self.getId()),'is downloading file',x['file'],'chunck',downloaded_chunck,'from',device.getId(),'at',self.env.now)
+                                    downloaded_chunck = downloaded_chunck + 1 #TODO forse ne abbiamo uno in piu
+                                    if downloaded_chunck == int(x['size']/MAX_CHUNCK):
+                                        break
+
+                        yield self.env.timeout(MAX_CHUNCK/U_BAND)
+                    print ('HO FINITO DI PRENDERE TUTTI I CHUNK',str(self.getId()),x['file'],self.env.now)
+                    print (self.getDownloadedFiles())
+
+
+
+                    self.downloaded_files.append(x)
 
                 else:
                     available_device =1 #server!
                     server = True
-                    d_band_server = d_band_server + U_BAND
-                    if (final - env.now > x['size']/U_BAND):
+                    d_band_server = d_band_server + D_BAND
+                    if (final - env.now > x['size']/D_BAND):
                         print (self.getId(),'is downloading from the server',folder.getStDevices())
-
-
-                if (server):
-                    print ('STO SCARICANDO QUALCOSA DAL SERVER',env.now,self.id)
-                else:
-                    print ('STO SCARICANDO QUALCOSA DA ',folder.getStDevices(),'A ',D_BAND*available_device/10e6)
-                yield env.timeout(x['size']/D_BAND/available_device)
-                d_band_occ = d_band_occ - D_BAND
-            #self.coda = False
-        print ('Ho scaricato tutto',env.now,self.id)
+                        self.downloaded_files.append(x)
+                        yield self.env.timeout(x['size']/D_BAND)
+                        print ('Ho scaricato tutto dal server',env.now,self.id)
 
 #******************************************************************************
 # Create the synthetic content synchronization network
@@ -307,7 +325,7 @@ if __name__ == '__main__':
 
     # number of devices in the simulation
     NUM_DEV = 10
-    SIM_TIME = 500
+    SIM_TIME = 5000
 
     # collection of devices
     devices = {}
