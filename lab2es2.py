@@ -11,6 +11,8 @@ SIZE = 40e6
 clients = 0
 u_band_occ = 0
 d_band_occ = 0
+d_band_server = 0
+users_online = {}
 
 #******************************************************************************
 # class representing the shared folders
@@ -63,6 +65,7 @@ class Device():
     # cosftructor
     def __init__(self, id, env=None):
         self.id = id
+        self.final = 0
         self.my_shared_folders = []
         self.q = Queue.Queue()
         self.env = env
@@ -76,6 +79,11 @@ class Device():
     def setEnv(self,env):
         self.env = env
 
+    def setFinal(self,final):
+        self.final = final
+
+    def getFinal(self):
+        return self.final
 
     def getIdFolder(self):
         x = []
@@ -112,7 +120,7 @@ class Device():
 
 
     def imOffline(self):
-
+        global users_online
         inter_arrival = random.lognormal(mean=7.971,sigma=1.308)
         print (self.id,'Offline!',env.now)
         yield self.env.timeout(inter_arrival)
@@ -123,11 +131,15 @@ class Device():
         # sample the time to next arrival
         inter_arrival = random.lognormal(mean=8.492,sigma=1.545)
 
+        global users_online
+
         try:
             final = env.now + inter_arrival
+            self.setFinal(final)
             randF = random.choice(self.getIdFolder())
+            users_online[self.getId()]= final
 
-            while env.now < final:
+            while env.now < self.final:
                 inter_upload = random.lognormal(mean = 3.748, sigma=2.286)
                 yield self.env.process(self.inDownload(final))
                 yield self.env.timeout(inter_upload)
@@ -148,6 +160,7 @@ class Device():
 
             stringa = str(self.id) + " in folder " + str(fold.getId())
             file = {'file': stringa,
+                    'folder': str(fold.getId()),
                     'size': SIZE}
 
             for d in devices:
@@ -159,8 +172,8 @@ class Device():
                     if (final - env.now > file['size']/U_BAND):
                         u_band_occ = u_band_occ + U_BAND
                         print (file,env.now)
-                        d.pushQueue(file)
                         yield env.timeout(file['size']/U_BAND)
+                        d.pushQueue(file)
                         u_band_occ = u_band_occ - U_BAND
                         print('Upload finito', env.now,self.id,str(d.getId()))
 
@@ -172,13 +185,35 @@ class Device():
         # else:
         #
         global d_band_occ
+        global d_band_server
+        server = False
         while not self.q.empty():
             x = self.q.get()
             if (final-env.now>x['size']/D_BAND):
-                d_band_occ = d_band_occ + D_BAND
-                print (x,self.id,env.now)
-                print ('STO SCARICANDO QUALCOSA',env.now,self.id)
-                yield env.timeout(x['size']/D_BAND)
+                folder_id = x['folder']
+                folder = self.getFolderFromId(folder_id)
+
+                if len(folder.getStDevices()) != 1 :
+                    available_device = 0
+                    for device in folder.getStDevices():
+                        if (available_device*x['size']/D_BAND < users_online[device]-env.now):
+                            available_device += 1
+                            print (self.getId(),'is downloading from',device)
+                            d_band_occ = d_band_occ + D_BAND
+
+                else:
+                    available_device =1 #server!
+                    server = True
+                    d_band_server = d_band_server + U_BAND
+                    if (final - env.now > x['size']/U_BAND):
+                        print (self.getId(),'is downloading from the server',folder.getStDevices())
+
+
+                if (server):
+                    print ('STO SCARICANDO QUALCOSA DAL SERVER',env.now,self.id)
+                else:
+                    print ('STO SCARICANDO QUALCOSA DA ',folder.getStDevices(),'A ',D_BAND*available_device/10e6)
+                yield env.timeout(x['size']/D_BAND/available_device)
                 d_band_occ = d_band_occ - D_BAND
             #self.coda = False
         print ('Ho scaricato tutto',env.now,self.id)
