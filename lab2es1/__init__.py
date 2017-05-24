@@ -1,22 +1,18 @@
+#!/usr/bin/python
 from collections import deque
 from numpy import random
 import simpy
 import device
-from matplotlib import pyplot
-
 from device import Device
-from shared_folders import  SharedFolder
+from shared_folders import SharedFolder
+from matplotlib import pyplot
+import numpy
 
-D_BAND = 20e6
-U_BAND = 5e6
-SIZE = 10e6
-MAX_CHUNCK = 1e6
-clients = 0
-u_band_occ = 0
-d_band_occ = 0
-users_online = {}
+SIM_TIME = 5000
 
-
+#******************************************************************************
+# Create the synthetic content synchronization network
+#******************************************************************************
 def generate_network(num_dv, devices, shared_folders):
 
     # shared folders per device - negative_binomial (s, mu)
@@ -100,10 +96,10 @@ def generate_network(num_dv, devices, shared_folders):
 # implements the simulation
 #******************************************************************************
 if __name__ == '__main__':
-
+    #global u_used_v
+    #global d_used_v
     # number of devices in the simulation
     NUM_DEV = 10
-    SIM_TIME = 50000
 
     # collection of devices
     devices = {}
@@ -111,36 +107,28 @@ if __name__ == '__main__':
     # collection of shared folders
     shared_folders = {}
 
+   # u_used_v.append(0)
+   # d_used_v.append(0)
     # create the content sharing network
     env = simpy.Environment()
     generate_network(NUM_DEV, devices, shared_folders)
 
 
-    for fold in shared_folders:
-        print (fold,shared_folders[fold].getStDevices())
+    #for fold in shared_folders:
+        #print (fold,shared_folders[fold].getStDevices())
 
     # DEBUG: dumping the network
     for dev_id in devices:
-        print (str(devices[dev_id]))
+        #print (str(devices[dev_id]))
         devices[dev_id].setEnv(env)
         env.process(devices[dev_id].deviceP())
 
     env.run(until=SIM_TIME)
 
-
-    #todo unisci le due liste e fai sort per avere consec.
-
-
-    for dev_id in devices:
-        print (dev_id)
-        for file in devices[dev_id].getDPeer():
-        #if len(devices[dev_id].getDPeer()) != 0:
-            print ('FROM PEER',devices[dev_id].getDPeer()[file]['avg_peers'],'  FILE -->',file, 'IN -->',devices[dev_id].getDPeer()[file]['time'])
-        for file in devices[dev_id].getDServer():
-        #if len(devices[dev_id].getDPeer()) != 0:
-            print ('FROM SERVER FILE -->',file, 'IN -->',devices[dev_id].getDServer()[file]['time'])
-
-    print (device.getOccupancy())
-    pyplot.plot(device.getOccupancy())
+    fig,(down,up) = pyplot.subplots(2,1)
+    x = numpy.linspace(0,len(device.getDUsedV()),len(device.getDUsedV()),endpoint=True)
+    down.bar(x,device.getDUsedV())
+    x = numpy.linspace(0,len(device.getUUsedV()),len(device.getUUsedV()),endpoint=True)
+    up.bar(x,device.getUUsedV())
 
     pyplot.show()

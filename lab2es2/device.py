@@ -13,7 +13,11 @@ clients = 0
 u_band_occ = 0
 d_band_occ = 0
 d_band_server = 0
+band_s_occupancy = []
 users_online = {}
+
+def getOccupancy():
+    return band_s_occupancy;
 
 class Device():
     # cosftructor
@@ -189,24 +193,27 @@ class Device():
                         if count == 0: #se non ci sono device disponibili al download vado nel server
                             server = True
                             d_band_server = d_band_server + D_BAND
+                            band_s_occupancy.append(d_band_server)
                             remaining_data = (x['size'] - MAX_CHUNCK*downloaded_chunck)
                             if (final - self.env.now > remaining_data/ D_BAND):
                                 print (self.getId(), 'is downloading from the server cause count 0', folder.getStDevices())
-                                start_d = self.env.now
+                                start = self.env.now
                                 #il server va a scaricare solo la rimanente parte del file
                                 #naturalmente se siamo al chunck 0 scarica tutto
-                                yield self.env.timeout((x['size']-remaining_data) / D_BAND)
+                                yield self.env.timeout(float(remaining_data)/ D_BAND)
                                 self.downloaded_files.append(x)
-                                #todo da' end = enter . Controlla l'end
                                 self.d_server[x['file']] = {'exit': self.env.now,
-                                                            'enter': enter,
+                                                            'enter': start,
                                                             'time': self.env.now - enter
                                                             }
                                 print ('Ho scaricato tutto dal server', self.env.now, self.id)
+                                d_band_server = d_band_server - D_BAND
+                                band_s_occupancy.append(d_band_server)
                                 break
 
                         else:
                             yield self.env.timeout(MAX_CHUNCK/U_BAND)
+                            band_s_occupancy.append(d_band_server)
 
                     if not server:
                         #todo tenere traccia di quanti chunck ho scaricato
@@ -223,12 +230,17 @@ class Device():
 
                 else:
                     d_band_server = d_band_server + D_BAND
+                    band_s_occupancy.append(d_band_server)
+
                     if (final - self.env.now > x['size']/D_BAND):
                         print (self.getId(),'is downloading from the server',folder.getStDevices())
                         self.downloaded_files.append(x)
+                        start = self.env.now
                         yield self.env.timeout(x['size']/D_BAND)
                         print ('Ho scaricato tutto dal server',self.env.now,self.id)
                         self.d_server[x['file']] = {'exit' : self.env.now,
-                                                  'enter': enter,
-                                                  'time': self.env.now - enter
+                                                    'enter': start,
+                                                    'time': self.env.now - enter
                                                   }
+                    d_band_server = d_band_server - D_BAND
+                    band_s_occupancy.append(d_band_server)

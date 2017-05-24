@@ -290,10 +290,10 @@ def generate_network(num_dv, devices, shared_folders):
 # implements the simulation
 #******************************************************************************
 if __name__ == '__main__':
-    global u_used_v
-    global d_used_v
+    #global u_used_v
+    #global d_used_v
     # number of devices in the simulation
-    NUM_DEV = 1000
+    NUM_DEV = 10
 
     # collection of devices
     devices = {}
