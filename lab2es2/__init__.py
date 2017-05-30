@@ -103,7 +103,7 @@ if __name__ == '__main__':
 
     # number of devices in the simulation
     NUM_DEV = 10
-    SIM_TIME = 50000
+    SIM_TIME = 100000
 
     # collection of devices
     devices = {}
@@ -121,7 +121,7 @@ if __name__ == '__main__':
 
     # DEBUG: dumping the network
     for dev_id in devices:
-        print (str(devices[dev_id]))
+        #print (str(devices[dev_id]))
         devices[dev_id].setEnv(env)
         env.process(devices[dev_id].deviceP())
 
@@ -140,7 +140,16 @@ if __name__ == '__main__':
         #if len(devices[dev_id].getDPeer()) != 0:
             print ('FROM SERVER FILE -->',file, 'IN -->',devices[dev_id].getDServer()[file]['time'])
 
-    print (device.getOccupancy())
-    pyplot.plot(device.getOccupancy())
+    #print (device.getOccupancy())
+    pyplot.plot(device.getOccupancy(),label= 'SERVER ACTIVITY')
+    pyplot.xlabel('')
 
+    pyplot.figure(2)
+    for dev in devices:
+        if len(devices[dev].getActivePeers())!=0:
+            string = 'PEERS AVAILABLE FOR DEVICE: ' + str(dev)
+            pyplot.plot(devices[dev].getActivePeers(),label = string)
+            pyplot.xlabel('Downloaded chunk')
+            pyplot.ylabel('Active Peers')
+            break
     pyplot.show()
