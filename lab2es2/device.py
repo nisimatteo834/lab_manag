@@ -30,6 +30,8 @@ class Device():
         self.active_peers = []
         self.d_peer = {}
         self.d_server = {}
+        self.upload_hist = []
+        self.upload_hist.append(0)
         self.q = Queue.Queue()
         self.env = env
         self.coda = True
@@ -56,6 +58,9 @@ class Device():
 
     def getDPeer(self):
         return self.d_peer
+
+    def getUploadHist(self):
+        return self.upload_hist
 
     def getDServer(self):
         return self.d_server
@@ -130,7 +135,7 @@ class Device():
 
     def imUploading(self,final,randF):
         global u_band_occ
-        print ('randf', randF,self.id)
+        #print ('randf', randF,self.id)
         fold = self.getFolderFromId(randF)
         devices = fold.getDevices()
 
@@ -183,12 +188,16 @@ class Device():
                         #print ('File',x['file'],'shared with',folder.getStDevices())
                         count = 0
                         for device in folder.getDevices():
-                            if (users_online[device.getId()] > self.env.now + MAX_CHUNCK / U_BAND) and (x in device.getDownloadedFiles()) :
+                            if (users_online[device.getId()] > self.env.now + float(MAX_CHUNCK) / U_BAND) and (x in device.getDownloadedFiles()) :
                                 count = count + 1
                                 #print ('count:',count)
                                 #print (str(device.getId()), 'has this files',x['file'])#, device.getDownloadedFiles())
                                 if not chuncks.has_key(downloaded_chunck):
-                                    chuncks[downloaded_chunck] = device.getId()
+                                    chuncks[downloaded_chunck] = {'dev':device.getId(),'flag':False}
+                                    last_up = device.upload_hist[-1]
+                                    device.upload_hist.append(last_up + float(MAX_CHUNCK)/U_BAND)
+
+
                                     #print (str(self.getId()),'is downloading file',x['file'],'chunck',downloaded_chunck,'from',device.getId(),'at',self.env.now)
                                     downloaded_chunck = downloaded_chunck + 1
                                     if downloaded_chunck == int(x['size']/MAX_CHUNCK):
@@ -217,7 +226,13 @@ class Device():
 
                         else:
                             yield self.env.timeout(MAX_CHUNCK/U_BAND)
-                            band_s_occupancy.append(d_band_server)
+                            for chunk in chuncks:
+                                if (chuncks[chunk]['flag'] == False):
+                                    dev = folder.getDeviceById(chuncks[chunk]['dev'])
+                                    last_up = dev.upload_hist[-1]
+                                    dev.upload_hist.append(last_up - float(MAX_CHUNCK/U_BAND))
+                                    chuncks[chunk]['flag'] = True
+                                    band_s_occupancy.append(d_band_server)
 
                     if not server:
                         self.d_peer[x['file']] = {'exit' : self.env.now,

@@ -8,6 +8,8 @@ from matplotlib import pyplot
 import numpy
 
 
+
+
 D_BAND = 20e6
 U_BAND = 5e6
 SIZE = 10e6

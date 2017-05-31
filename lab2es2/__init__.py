@@ -102,7 +102,7 @@ def generate_network(num_dv, devices, shared_folders):
 if __name__ == '__main__':
 
     # number of devices in the simulation
-    NUM_DEV = 10
+    NUM_DEV = 500
     SIM_TIME = 100000
 
     # collection of devices
@@ -142,14 +142,24 @@ if __name__ == '__main__':
 
     #print (device.getOccupancy())
     pyplot.plot(device.getOccupancy(),label= 'SERVER ACTIVITY')
-    pyplot.xlabel('')
+    pyplot.ylabel('BAND OF THE SERVER')
 
-    pyplot.figure(2)
+
     for dev in devices:
-        if len(devices[dev].getActivePeers())!=0:
+        if len(devices[dev].getActivePeers())!=0 and len(devices[dev].getUploadHist())!=0:
+
+            print ('Upload hist',devices[dev].getUploadHist())
+
             string = 'PEERS AVAILABLE FOR DEVICE: ' + str(dev)
-            pyplot.plot(devices[dev].getActivePeers(),label = string)
+            pyplot.figure(2)
             pyplot.xlabel('Downloaded chunk')
             pyplot.ylabel('Active Peers')
+            pyplot.plot(devices[dev].getActivePeers(),label = string)
+
+            pyplot.figure(3)
+            pyplot.xlabel('Chunks')
+            pyplot.xlabel('Band')
+            pyplot.plot(devices[dev].getUploadHist())
+
             break
     pyplot.show()
