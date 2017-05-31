@@ -102,8 +102,8 @@ def generate_network(num_dv, devices, shared_folders):
 if __name__ == '__main__':
 
     # number of devices in the simulation
-    NUM_DEV = 10
-    SIM_TIME = 50000
+    NUM_DEV = 500
+    SIM_TIME = 100000
 
     # collection of devices
     devices = {}
@@ -121,7 +121,7 @@ if __name__ == '__main__':
 
     # DEBUG: dumping the network
     for dev_id in devices:
-        print (str(devices[dev_id]))
+        #print (str(devices[dev_id]))
         devices[dev_id].setEnv(env)
         env.process(devices[dev_id].deviceP())
 
@@ -140,7 +140,26 @@ if __name__ == '__main__':
         #if len(devices[dev_id].getDPeer()) != 0:
             print ('FROM SERVER FILE -->',file, 'IN -->',devices[dev_id].getDServer()[file]['time'])
 
-    print (device.getOccupancy())
-    pyplot.plot(device.getOccupancy())
+    #print (device.getOccupancy())
+    pyplot.plot(device.getOccupancy(),label= 'SERVER ACTIVITY')
+    pyplot.ylabel('BAND OF THE SERVER')
 
+
+    for dev in devices:
+        if len(devices[dev].getActivePeers())!=0 and len(devices[dev].getUploadHist())!=0:
+
+            print ('Upload hist',devices[dev].getUploadHist())
+
+            string = 'PEERS AVAILABLE FOR DEVICE: ' + str(dev)
+            pyplot.figure(2)
+            pyplot.xlabel('Downloaded chunk')
+            pyplot.ylabel('Active Peers')
+            pyplot.plot(devices[dev].getActivePeers(),label = string)
+
+            pyplot.figure(3)
+            pyplot.xlabel('Chunks')
+            pyplot.xlabel('Band')
+            pyplot.plot(devices[dev].getUploadHist())
+
+            break
     pyplot.show()

@@ -50,6 +50,12 @@ class SharedFolder(object):
             lista.append(x.getId())
         return lista
 
+    def getDeviceById(self,id):
+        for x in self.getDevices():
+            if x.getId() == id :
+                return x
+
+
     # add a device to the list of devices registering this shared folder
     def add_device(self, device):
         self.my_devices.append(device)
