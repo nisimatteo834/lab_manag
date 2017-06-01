@@ -99,7 +99,7 @@ if __name__ == '__main__':
     #global u_used_v
     #global d_used_v
     # number of devices in the simulation
-    NUM_DEV = 10
+    NUM_DEV = 50
 
     # collection of devices
     devices = {}
@@ -128,7 +128,9 @@ if __name__ == '__main__':
     fig,(down,up) = pyplot.subplots(2,1)
     x = numpy.linspace(0,len(device.getDUsedV()),len(device.getDUsedV()),endpoint=True)
     down.bar(x,device.getDUsedV())
+    down.set_ylabel("D used band")
     x = numpy.linspace(0,len(device.getUUsedV()),len(device.getUUsedV()),endpoint=True)
     up.bar(x,device.getUUsedV())
+    up.set_ylabel("UP used band")
 
     pyplot.show()

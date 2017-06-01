@@ -132,11 +132,11 @@ class Device():
     def imOnline(self,timeout):
         # sample the time to next arrival
         inter_arrival = random.lognormal(mean=8.492,sigma=1.545)
-
+        # when a user goes online, randomly selects a folder to which upload and evaluate the end time of its online session
         try:
             final = env.now + inter_arrival
             randF = random.choice(self.getIdFolder())
-
+            # if the online session in not over the device starts to download files, then waits for files to upload and uploads it
             while env.now < final:
                 inter_upload = random.lognormal(mean = 3.748, sigma=2.286)
                 yield self.env.process(self.inDownload(final))
@@ -184,13 +184,10 @@ class Device():
 
 
     def inDownload(self,final):
-
-        # if self.q.empty():
-        #     yield env.timeout(1)
-        # else:
-        #
+        # the device pulls packets from the queue and downloads them till the queue is empty
         global d_band_occ
         global d_used_v
+        # todo se l'online finisce prima della fine del download come esce dal while?? dopo l'if mettere: else: return ?
         while not self.q.empty():
             x = self.q.get()
             if (final-env.now>x['size']/D_BAND):
