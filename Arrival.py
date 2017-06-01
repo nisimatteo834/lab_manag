@@ -44,7 +44,7 @@ class Arrival(object):
             # print self.env.now
 
 
-            print ('At instant ', self.env.now, "the number of packets arriving is ", int(self.batch[-1]))
+            # print ('At instant ', self.env.now, "the number of packets arriving is ", int(self.batch[-1]))
 
             # call the process many times (= number of packets arriving at the same time)
             for i in range(0, int(self.batch[-1])):

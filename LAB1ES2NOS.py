@@ -11,19 +11,21 @@ import Queue
 # **********************************************************************************************************************
 # Constants
 # **********************************************************************************************************************
-RANDOM_SEED = 50
-INTER_ARRIVAL = 15
-SERVICE_TIME = 10#todo put it to 1 in order to have a good plot
+RANDOM_SEED = 42
+INTER_ARRIVAL = 4
+SERVICE_TIME = 10 #todo put it to 1 in order to have a good plot
 NUM_MACHINES = 1
+BUFFER_SIZE = 6
+MIN_BATCH = 1
 MAX_BATCH = 10
 SIM_TIME = 1000
-MIN_BATCH = 1
-BUFFER_SIZE = 15
+
+
 
 # **********************************************************************************************************************
-# Car arrival
+# Packet arrival management
 # **********************************************************************************************************************
-class CarArrival(object):
+class Arrival(object):
 
     # constructor
     def __init__(self, environ, arrival_time):
@@ -32,12 +34,12 @@ class CarArrival(object):
         self.arrival_time = arrival_time
         # the environment
         self.env = environ
-        self.count = 0
+        self.totalPackets = 0
         self.packetstosend = []
 
     # execute the process
     def arrival_process(self, cacheplusweb):
-        while True:
+        while True:                             # never exit the loop
 
             # sample the time to next arrival
             inter_arrival = random.expovariate(lambd=1.0/self.arrival_time)
@@ -47,11 +49,11 @@ class CarArrival(object):
             # yield an event to the simulator
             yield self.env.timeout(inter_arrival)
             print ('At', self.env.now, 'enter', number_packets, 'packets')
-
+            # all the packets of the batches are dealt at the same time
             for x in range(0,number_packets):
                 # a car has arrived - request cacheplusweb to do its job
-                self.count += 1
-                p = Packet(self.count)
+                self.totalPackets += 1
+                p = Packet(self.totalPackets)
                 self.packetstosend.append(p)
                 print (p.getId(),' enters at ',self.env.now)
 
@@ -66,25 +68,39 @@ class Packet():
     def getId(self):
         return self.id
 # **********************************************************************************************************************
-# Car wash - it gets an waiting car (FCFS) and performs the service
+# Web Cache and Web server - Users performs requests that can be simultaneous (batches). in the content is in the cache
+#       the service is done, otherwise the request goes to the slower web server
 # **********************************************************************************************************************
+
+
 class cacheplusweb(object):
 
     # constructor
     def __init__(self, env,bs1,nm1,st1,bs2,nm2,st2,tsh):
 
+        # probability threshold for a packet to go to the back server
         self.tsh = tsh
-        # the service time
+
+        # buffer size of web cache
         self.bs1 = bs1
+
+        # service time of web cache
         self.st1 = st1
+
+        # number of machines
         self.nm1 = nm1
 
+        #buffer size of web server
         self.bs2 = bs2
+
+        #number of web servers
         self.nm2 = nm2
+
+        #service time of web server
         self.st2 = st2
 
 
-        # wash machines
+        #
         self.machines1 = simpy.Resource(env, nm1)
         self.machines2 = simpy.Resource(env,nm2)
 
@@ -92,44 +108,48 @@ class cacheplusweb(object):
         self.env = env
 
         # number of cars in the shop
-
         self.q_memory = []
 
+        #Queues are used to process the packets in order, as a real buffer
         self.queue1 = Queue.Queue()
         self.queue2 = Queue.Queue()
 
+        # to keep trace of the response time, of front server, back server and total system
         self.response_time1 = []
         self.response_time2 = []
         self.total_response_time = []
 
+        # to keep trace of the buffer occupancy
         self.bo1 = []
         self.bo2 = []
 
-        self.numberPacketDropped = 0
+        #Counter for the dropped packets
+        self.numberPacketDroppedFront = 0
+        self.numberPacketDroppedBack = 0
 
-
+    # Web Cache
     def frontEnd(self,packetreceived):
 
         for x in range(0,len(packetreceived)):
-            if  (self.queue1.qsize()< self.bs1):
+            if  (self.queue1.qsize()< self.bs1): # If there is still some buffer empty, add the packet to the queue
                 self.queue1.put(packetreceived[0])
                 print ('Packet ',packetreceived[0].getId(),'in Q1 at ',self.env.now)
                 packetreceived.remove(packetreceived[0])
             else:
                 print ('Packet ',packetreceived[0].getId(),'has been dropped by Q1 ',self.env.now)
                 packetreceived.remove(packetreceived[0])
-                self.numberPacketDropped += 1
-
+                self.numberPacketDroppedFront += 1
+        # when the buffer queue is updated, save the buffer occupancy in the ad hoc vector
         self.bo1.append(self.queue1.qsize())
-        print("Cars in the shop in queue1: ", self.queue1.qsize())
+        print("Packets in queue1: ", self.queue1.qsize())
 
-        while (not self.queue1.empty()):
+        while not self.queue1.empty():
             enter = self.env.now
-        # request a machine to wash the new coming car
+            # request the cache to process a new packet
             with self.machines1.request() as request:
                 yield request
 
-            # once the machine is free, wait until service is finished
+                # once the machine is free, wait until service is finished
                 service_time = random.expovariate(lambd=1.0/self.st1)
                 packetserved = self.queue1.get()
                 print ('Packet ', packetserved.getId(), 'served by Q1 at', self.env.now)
@@ -137,36 +157,41 @@ class cacheplusweb(object):
             yield self.env.timeout(service_time)
 
             print ('Packet ', packetserved.getId(), 'exits from FrontEnd at ', self.env.now)
-            # release the wash machine
+            # release the  cache
             self.response_time1.append(self.env.now-enter)
 
+            # extract a uniform random value between 0 and 1
             p = numpy.random.uniform(0,1)
 
-            if p > tsh:
+            # if this value is below the threshold, the packet goes to the backEnd server
+            if p <= tsh:
                 yield (self.env.process(self.backEnd(packetserved)))
-
-            else:
+            else:               # otherwise the packet request is accomplished only by the cache
                 self.response_time2.append(0)
 
             self.total_response_time.append(self.env.now-enter)
-    def backEnd(self,packetreceived):
-        if  (self.queue2.qsize()< self.bs2):
-            self.queue2.put(packetreceived)
-            print ('Packet ',packetreceived.getId(),'in Q2 at ',self.env.now)
 
+    # Web server
+    def backEnd(self,packetreceived):
+        # if there is still some space in the web server buffer add a packet to the queue
+        if self.queue2.qsize() < self.bs2:
+            self.queue2.put(packetreceived)
+            print ('Packet ',packetreceived.getId(),'in Q2 at ', self.env.now)
+        # otherwise discard it
         else:
             print ('Packet ',packetreceived[0].getId(),'has been dropped by Q2 ',self.env.now)
-            self.numberPacketDropped += 1
+            self.numberPacketDroppedBack += 1
 
+        # after setting the queue, update queue length
         self.bo2.append(self.queue1.qsize())
 
         print("Packets in buffer2: ", self.queue2.qsize())
 
-        while (not self.queue2.empty()):
+        while not self.queue2.empty():
             enter = self.env.now
-        # request a machine to wash the new coming car
+        # request the server to process the packet
             with self.machines2.request() as request:
-                print (packetreceived.getId(),'is asking for resource',request)
+                print (packetreceived.getId(),'is asking for resource', request)
                 yield request
 
                 print (packetreceived.getId(),'is using the resource', request)
@@ -209,28 +234,33 @@ if __name__ == '__main__':
     #for x in range(SERVICE_TIME,INTER_ARRIVAL,1):
     env = simpy.Environment()
 
-    # car arrival
-    car_arrival = CarArrival(env, INTER_ARRIVAL)
+    # packet batch arrival
+    packet_arrival = Arrival(env, INTER_ARRIVAL)
 
     # cacheplusweb
     bs1 = BUFFER_SIZE
     bs2 = BUFFER_SIZE
     nm1 = NUM_MACHINES
     nm2 = NUM_MACHINES
-    st1 = SERVICE_TIME/2
+    st1 = SERVICE_TIME/10
     st2 = SERVICE_TIME
-    tsh = 0.8
+    tsh = 0.99
     cacheplusweb = cacheplusweb(env,bs1,nm1,st1,bs2,nm2,st2,tsh)
 
     # start the arrival process
-    env.process(car_arrival.arrival_process(cacheplusweb))
+    env.process(packet_arrival.arrival_process(cacheplusweb))
 
     # simulate until SIM_TIME
     env.run(until=SIM_TIME)
 
+    ##########################
+    #      Statistics        #
+    ##########################
 
+    print ('Dropped packets in Front Server', cacheplusweb.numberPacketDroppedFront )
+    print ('Dropped packets in Back Server', cacheplusweb.numberPacketDroppedBack)
 
-    fig,(rt1,rt2,tot) = pyplot.subplots(3,1)
+    fig, (rt1, rt2, tot) = pyplot.subplots(3, 1)
     rt1.plot(cacheplusweb.response_time1)
     rt1.set_ylabel('RT1')
     rt2.set_ylabel('RT2')

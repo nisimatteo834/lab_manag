@@ -35,6 +35,9 @@ class Service(object):
         # count dropped packets
         self.countDropped1 = 0
         self.countDropped2 = 0
+        self.pMinusOne = 0
+        self.dropped2vector = []
+        self.sortedPackets = []
 
         # store time to complete the job
         self.jobTime1 = []
@@ -66,7 +69,7 @@ class Service(object):
 
         # buffer 1 full - drop packet and decrease queue 1 size
         if self.q1 + 1 > self.bufSize1:
-            print ("Packet dropped in Front Server at: ", self.env.now)
+            # print ("Packet dropped in Front Server at: ", self.env.now)
             # TODO self.q1 -= 1
             self.countDropped1 += 1
             # print ("Packets in the Front Server buffer: ", self.q1)
@@ -107,19 +110,20 @@ class Service(object):
                 # print ("Packets in the Front Server buffer: ", self.q1) #TODO DA SPOSTARE ANCHE QUESTO COME SU
 
                 self.countJob1 += 1
-                print ("Service of packet no. %d done in Front Server at: %f") % (self.countJob1, self.env.now)
+                # print ("Service of packet no. %d done in Front Server at: %f") % (self.countJob1, self.env.now)
 
         # generates a value from 0 to 1 to evaluate if packet goes to back server
         p = random.uniform(0, 1)
         # print ("Probability p: ", p)
 
         # packet goes to back server
+        self.sortedPackets.append(self.pMinusOne)
         if p < self.tresholdP:
 
             # increment the queue size - one packet arrived
             if self.q2 + 1 > self.bufSize2:
                 self.buffOcc2.append(self.q2)
-                print ("Packet dropped in Back Server at: ", self.env.now)
+                # print ("Packet dropped in Back Server at: ", self.env.now)
                 # self.q2 -= 1
                 self.countDropped2 += 1
                 # print ("Packets in the Back Server buffer: ", self.q2)
@@ -153,4 +157,7 @@ class Service(object):
                     # increment the counter to choose the correct time to finish the job
                     self.countJob2 += 1
 
-                    print ("Service of packet no. %d done in Back Server at: %f" % (self.countJob2, self.env.now))
+                    # print ("Service of packet no. %d done in Back Server at: %f" % (self.countJob2, self.env.now))
+                self.dropped2vector.append(self.countDropped2)
+        else:
+            self.pMinusOne += 1

@@ -6,9 +6,9 @@ from Arrival import Arrival
 from Service import Service
 
 # Arrival
-ARRIVAL_RATE = 7
+ARRIVAL_RATE = 15
 MIN_BATCH = 1
-MAX_BATCH = 5
+MAX_BATCH = 10
 
 # Front-end server
 SERVICE_RATE_1 = 2
@@ -90,7 +90,8 @@ if __name__ == "__main__":
     # response time - total
     responseTime = []
     for i in range(len(server.endTime2)):
-        responseTime.append(server.endTime2[i] - server.startTime1[i])
+        # todo Problema: il total service time aumenta perche' le i si riferiscono a pacchetti diversi, bisogna tener conto di quelli droppati e di quelli che escono a p-1 e ??
+        responseTime.append(server.endTime2[i] - server.startTime1[i + server.dropped2vector[i]] + server.sortedPackets[i])
         # print (server.endTime2[i] - server.startTime1[i])
 
     # response time plot
@@ -112,12 +113,12 @@ if __name__ == "__main__":
     fig2, (BufferFront, BufferBack) = pyplot.subplots(2,1)
 
     BufferFront.plot(server.buffOcc1)
-    response1.set_xlabel("Sample")
-    response1.set_ylabel("Front Server Buff Occ")
+    BufferFront.set_xlabel("Sample")
+    BufferFront.set_ylabel("Front Server Buff Occ")
 
     BufferBack.plot(server.buffOcc2)
-    response1.set_xlabel("Sample")
-    response1.set_ylabel("Back Server Buff Occ")
+    BufferBack.set_xlabel("Sample")
+    BufferBack.set_ylabel("Back Server Buff Occ")
 
 
     pyplot.show()
