@@ -36,9 +36,6 @@ class Device():
         self.env = env
         self.coda = True
 
-        #toDo differenziare file da p2p da quelli server in rapporto al numero di peer da cui scarica
-
-    # fancy #printing as string
     def __str__(self):
         sf_str = ", ".join([str(i) for i in self.my_shared_folders])
         return "Device: " + str(self.id) + ", Shared Folders [" + sf_str + "]"
@@ -46,18 +43,21 @@ class Device():
     def setEnv(self,env):
         self.env = env
 
-
+    #retrieve the list of active peers in time
     def getActivePeers(self):
         return self.active_peers
 
+    #sets the final time
     def setFinal(self,final):
         self.final = final
 
+    #gets the disconnection time
     def getFinal(self):
         return self.final
 
     def getDPeer(self):
         return self.d_peer
+
 
     def getUploadHist(self):
         return self.upload_hist
@@ -65,24 +65,28 @@ class Device():
     def getDServer(self):
         return self.d_server
 
+    #retrieve the stored files for the user
     def getDownloadedFiles(self):
         return self.downloaded_files
 
+    #returns a list of the id of the shared folders
     def getIdFolder(self):
         x = []
         for f in self.my_shared_folders:
             x.append(f.getId())
         return x
 
+    #given an id, returns the object of the folder
     def getFolderFromId(self,id):
         for fold in self.my_shared_folders:
             if str(fold.getId()) == str(id):
                 return fold
 
-
+    #put the item in the queue
     def pushQueue(self,item):
         self.q.put(item)
 
+    #retrieves the id of the device
     def getId(self):
         return self.id
 
@@ -90,7 +94,8 @@ class Device():
     def add_shared_folder(self, sf):
         self.my_shared_folders.append(sf)
 
-
+    #manages the session of the device alternating online and offline and incrementing/decrementing the
+    #number of users online
     def deviceP(self):
         global clients
         while True:
@@ -105,12 +110,11 @@ class Device():
     def imOffline(self):
         global users_online
         inter_arrival = random.lognormal(mean=7.971,sigma=1.308)
-        #print (self.id,'Offline!',self.env.now)
         yield self.env.timeout(inter_arrival)
-        #print ('Offline finito!',self.env.now)
 
-
-    def imOnline(self,timeout):
+    #this is the managare for the online function of a device.
+    #while the device is online, it alternates download and upload status
+    def imOnline(self):
         # sample the time to next arrival
         inter_arrival = random.lognormal(mean=8.492,sigma=1.545)
 
@@ -122,20 +126,20 @@ class Device():
             randF = random.choice(self.getIdFolder())
             users_online[self.getId()]= final
 
+            #loops until the users goes offline
             while self.env.now < self.final:
                 inter_upload = random.lognormal(mean = 3.748, sigma=2.286)
                 yield self.env.process(self.inDownload(final))
                 yield self.env.timeout(inter_upload)
                 yield self.env.process(self.imUploading(final,randF))
-            #print('Finito online',self.env.now)
 
         except Exception as e:
             print (e.message)
 
-
+    #manager for the uploading phase
+    #each file has an univoque name
     def imUploading(self,final,randF):
         global u_band_occ
-        #print ('randf', randF,self.id)
         fold = self.getFolderFromId(randF)
         devices = fold.getDevices()
 
@@ -144,9 +148,9 @@ class Device():
                 'folder': str(fold.getId()),
                 'size': SIZE}
 
+        #checks if it is able to upload before the end of the session
         if (final - self.env.now > file['size'] / U_BAND):
             u_band_occ = u_band_occ + U_BAND
-            ##print (file, self.env.now)
             yield self.env.timeout(file['size'] / U_BAND)
             self.downloaded_files.append(file)
 
@@ -154,16 +158,10 @@ class Device():
                 if d.getId() != self.id:
                         d.pushQueue(file)
                         u_band_occ = u_band_occ - U_BAND
-                        ##print('Upload finito', self.env.now, self.id, str(d.getId()))
-
 
 
     def inDownload(self,final):
 
-        # if self.q.empty():
-        #     yield self.env.timeout(1)
-        # else:
-        #
         global d_band_occ
         global d_band_server
         while not self.q.empty():

@@ -1,22 +1,18 @@
+#!/usr/bin/python
 from collections import deque
 from numpy import random
 import simpy
 import device
-from matplotlib import pyplot
-import numpy
 from device import Device
 from shared_folders import SharedFolder
+from matplotlib import pyplot
+import numpy
 
-D_BAND = 20e6
-U_BAND = 5e6
-SIZE = 10e6
-MAX_CHUNCK = 1e6
-clients = 0
-u_band_occ = 0
-d_band_occ = 0
-users_online = {}
+SIM_TIME = 100000
 
-
+#******************************************************************************
+# Create the synthetic content synchronization network
+#******************************************************************************
 def generate_network(num_dv, devices, shared_folders):
 
     # shared folders per device - negative_binomial (s, mu)
@@ -100,10 +96,10 @@ def generate_network(num_dv, devices, shared_folders):
 # implements the simulation
 #******************************************************************************
 if __name__ == '__main__':
-
+    #global u_used_v
+    #global d_used_v
     # number of devices in the simulation
     NUM_DEV = 600
-    SIM_TIME = 100000
 
     # collection of devices
     devices = {}
@@ -111,6 +107,8 @@ if __name__ == '__main__':
     # collection of shared folders
     shared_folders = {}
 
+   # u_used_v.append(0)
+   # d_used_v.append(0)
     # create the content sharing network
     env = simpy.Environment()
     generate_network(NUM_DEV, devices, shared_folders)
@@ -127,35 +125,19 @@ if __name__ == '__main__':
 
     env.run(until=SIM_TIME)
 
-    pyplot.figure(1)
-    pyplot.plot(device.getOccupancy(),label= 'SERVER ACTIVITY')
-    pyplot.ylabel('BAND OF THE SERVER')
+    fig,(down,up) = pyplot.subplots(2,1)
+    x = numpy.linspace(0,len(device.getDUsedV()),len(device.getDUsedV()),endpoint=True)
+    down.bar(x,device.getDUsedV())
+    down.set_ylabel("D used band")
+    x = numpy.linspace(0,len(device.getUUsedV()),len(device.getUUsedV()),endpoint=True)
+    up.bar(x,device.getUUsedV())
+    up.set_ylabel("UP used band")
 
-    pyplot.figure(2)
-    pyplot.xlabel('BAND OF THE SERVER')
-    pyplot.ylabel('OCCURENCES')
-    pyplot.hist(device.getOccupancy(),label = 'SERVER HIST')
-
-
-    var = 0
-    for_plot_variance = []
-    for dev in devices:
-        if len(devices[dev].getActivePeers())!=0 and len(devices[dev].getUploadHist())!=0:
-
-            #I make this computation in order to retrieve a good example for the plot
-            if numpy.var(devices[dev].getActivePeers())> var:
-                var = numpy.var(devices[dev].getActivePeers())
-                for_plot_variance = devices[dev].getActivePeers()
-                d = devices[dev]
-
-    string = 'PEERS AVAILABLE FOR DEVICE: ' + str(d.getId())
-    pyplot.figure(3)
-    pyplot.xlabel('Downloaded chunk')
-    pyplot.ylabel('Active Peers')
-    pyplot.plot(for_plot_variance, label=string)
-    pyplot.figure(4)
-    pyplot.xlabel('Chunks')
-    pyplot.ylabel('Band')
-    pyplot.plot(d.getUploadHist())
-
+    fig,(down,up) = pyplot.subplots(2,1)
+    x = numpy.linspace(0,len(device.getDUsedV()),len(device.getDUsedV()),endpoint=True)
+    down.hist(device.getDUsedV())
+    down.set_ylabel("D used band")
+    x = numpy.linspace(0,len(device.getUUsedV()),len(device.getUUsedV()),endpoint=True)
+    up.hist(device.getUUsedV())
+    up.set_ylabel("UP used band")
     pyplot.show()

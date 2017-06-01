@@ -63,7 +63,6 @@ if __name__ == '__main__':
     handles, labels = buff.get_legend_handles_labels()
     buff.legend(handles, labels)
 
-
     resp.plot(ro_vector,average_response_time,label='AVG RESP')
     resp.plot(ro_vector,theoretical_response_time,label='TH RESP')
 

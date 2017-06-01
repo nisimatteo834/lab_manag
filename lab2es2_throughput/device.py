@@ -162,7 +162,7 @@ class Device():
 
         stringa = str(self.id) + " in folder " + str(fold.getId()) + " " + str(self.env.now)
 
-        row = numpy.random.randint(0,len(self.tp_size))
+        row = numpy.random.randint(0,len(self.tp_size)-1)
 
         file = {'file': stringa,
                 'folder': str(fold.getId()),
