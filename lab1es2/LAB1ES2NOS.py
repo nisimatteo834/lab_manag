@@ -12,7 +12,7 @@ import Queue
 # Constants
 # **********************************************************************************************************************
 RANDOM_SEED = 42
-INTER_ARRIVAL = 25
+INTER_ARRIVAL = 22
 SERVICE_TIME = 20   # todo put it to 1 in order to have a good plot
 NUM_MACHINES = 1
 BUFFER_SIZE = 20
