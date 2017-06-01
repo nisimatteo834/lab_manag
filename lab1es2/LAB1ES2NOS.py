@@ -12,12 +12,12 @@ import Queue
 # Constants
 # **********************************************************************************************************************
 RANDOM_SEED = 42
-INTER_ARRIVAL = 4
-SERVICE_TIME = 10 #todo put it to 1 in order to have a good plot
+INTER_ARRIVAL = 25
+SERVICE_TIME = 20   # todo put it to 1 in order to have a good plot
 NUM_MACHINES = 1
-BUFFER_SIZE = 6
+BUFFER_SIZE = 20
 MIN_BATCH = 1
-MAX_BATCH = 10
+MAX_BATCH = 5
 SIM_TIME = 1000
 
 
@@ -42,7 +42,7 @@ class Arrival(object):
         while True:                             # never exit the loop
 
             # sample the time to next arrival
-            inter_arrival = random.expovariate(lambd=1.0/self.arrival_time)
+            inter_arrival = random.expovariate(lambd=1.0)*self.arrival_time
 
             number_packets = numpy.random.uniform(MIN_BATCH,MAX_BATCH,1).__int__()
 
@@ -73,10 +73,10 @@ class Packet():
 # **********************************************************************************************************************
 
 
-class cacheplusweb(object):
+class cachePlusWeb(object):
 
     # constructor
-    def __init__(self, env,bs1,nm1,st1,bs2,nm2,st2,tsh):
+    def __init__(self, env, bs1, nm1, st1, bs2, nm2, st2, tsh):
 
         # probability threshold for a packet to go to the back server
         self.tsh = tsh
@@ -86,6 +86,7 @@ class cacheplusweb(object):
 
         # service time of web cache
         self.st1 = st1
+        self.service_time1 = 0
 
         # number of machines
         self.nm1 = nm1
@@ -98,6 +99,7 @@ class cacheplusweb(object):
 
         #service time of web server
         self.st2 = st2
+        self.service_time2 = 0
 
 
         #
@@ -123,6 +125,7 @@ class cacheplusweb(object):
         self.bo1 = []
         self.bo2 = []
 
+
         #Counter for the dropped packets
         self.numberPacketDroppedFront = 0
         self.numberPacketDroppedBack = 0
@@ -130,7 +133,7 @@ class cacheplusweb(object):
     # Web Cache
     def frontEnd(self,packetreceived):
 
-        for x in range(0,len(packetreceived)):
+        for x in range(0, len(packetreceived)):
             if  (self.queue1.qsize()< self.bs1): # If there is still some buffer empty, add the packet to the queue
                 self.queue1.put(packetreceived[0])
                 print ('Packet ',packetreceived[0].getId(),'in Q1 at ',self.env.now)
@@ -150,11 +153,11 @@ class cacheplusweb(object):
                 yield request
 
                 # once the machine is free, wait until service is finished
-                service_time = random.expovariate(lambd=1.0/self.st1)
+                self.service_time1 = random.expovariate(lambd=1.0)*self.st1
                 packetserved = self.queue1.get()
-                print ('Packet ', packetserved.getId(), 'served by Q1 at', self.env.now)
-            # yield an event to the simulator
-            yield self.env.timeout(service_time)
+                print ('Packet ', packetserved.getId(), 'served by Q1 at', self.env.now, 'should end at', self.env.now + self.service_time1)
+                # yield an event to the simulator
+                yield self.env.timeout(self.service_time1)
 
             print ('Packet ', packetserved.getId(), 'exits from FrontEnd at ', self.env.now)
             # release the  cache
@@ -172,18 +175,17 @@ class cacheplusweb(object):
             self.total_response_time.append(self.env.now-enter)
 
     # Web server
-    def backEnd(self,packetreceived):
+    def backEnd(self, packetreceived):
         # if there is still some space in the web server buffer add a packet to the queue
         if self.queue2.qsize() < self.bs2:
             self.queue2.put(packetreceived)
-            print ('Packet ',packetreceived.getId(),'in Q2 at ', self.env.now)
+            print ('Packet ',packetreceived,'in Q2 at ', self.env.now)
         # otherwise discard it
-        else:
-            print ('Packet ',packetreceived[0].getId(),'has been dropped by Q2 ',self.env.now)
-            self.numberPacketDroppedBack += 1
-
         # after setting the queue, update queue length
-        self.bo2.append(self.queue1.qsize())
+        else:
+            print ('Packet ',packetreceived,'has been dropped by Q2 ',self.env.now)
+            self.numberPacketDroppedBack += 1
+        self.bo2.append(self.queue2.qsize())
 
         print("Packets in buffer2: ", self.queue2.qsize())
 
@@ -191,21 +193,20 @@ class cacheplusweb(object):
             enter = self.env.now
         # request the server to process the packet
             with self.machines2.request() as request:
-                print (packetreceived.getId(),'is asking for resource', request)
+                print (packetreceived.getId(), 'is asking for resource2', request)
                 yield request
+                print (packetreceived.getId(), 'is using the resource2', request)
 
-                print (packetreceived.getId(),'is using the resource', request)
 
-
-            # once the machine is free, wait until service is finished
-                service_time = random.expovariate(lambd=1.0/self.st2)
+                # once the machine is free, wait until service is finished
+                self.service_time2 = random.expovariate(lambd=1.0)*self.st2
                 packetserved = self.queue2.get()
-                print ('Packet ', packetserved.getId(), 'served in Q2 at', self.env.now)
-            # yield an event to the simulator
-            yield self.env.timeout(service_time)
+                print ('Packet ', packetserved.getId(), 'served in Q2 at', self.env.now, 'shold end at', self.env.now + self.service_time2)
+                # yield an event to the simulator
+                yield self.env.timeout(self.service_time2)
 
             print ('Packet ', packetserved.getId(), 'end in Q2 at', self.env.now)
-            # release the wash machine
+            # release the back server
             self.response_time2.append(self.env.now-enter)
 
 # **********************************************************************************************************************
@@ -242,10 +243,10 @@ if __name__ == '__main__':
     bs2 = BUFFER_SIZE
     nm1 = NUM_MACHINES
     nm2 = NUM_MACHINES
-    st1 = SERVICE_TIME/10
+    st1 = SERVICE_TIME/20
     st2 = SERVICE_TIME
-    tsh = 0.99
-    cacheplusweb = cacheplusweb(env,bs1,nm1,st1,bs2,nm2,st2,tsh)
+    tsh = 1
+    cacheplusweb = cachePlusWeb(env, bs1, nm1, st1, bs2, nm2, st2, tsh)
 
     # start the arrival process
     env.process(packet_arrival.arrival_process(cacheplusweb))
