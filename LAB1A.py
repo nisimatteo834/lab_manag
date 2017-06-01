@@ -12,9 +12,9 @@ from matplotlib import pyplot
 # **********************************************************************************************************************
 RANDOM_SEED = 42
 INTER_ARRIVAL = 25
-SERVICE_TIME = 1
+SERVICE_TIME = 24
 NUM_MACHINES = 1
-SIM_TIME = 100000
+SIM_TIME = 10000000000
 
 class PacketArrival(object):
 
@@ -59,7 +59,7 @@ class Buffer(object):
         self.response_time = []
 
     def process(self):
-        print("Cars in the shop on arrival: ", self.qsize)
+        #print("Cars in the shop on arrival: ", self.qsize)
 
         self.q_memory.append(self.qsize)
         self.qsize += 1
@@ -102,26 +102,26 @@ if __name__ == '__main__':
     theoretical_response_time = []
     ro_vector = []
 
-    for x in range(SERVICE_TIME,INTER_ARRIVAL,1):
-        env = simpy.Environment()
-        packet_arrival = PacketArrival(env, INTER_ARRIVAL)
-        buffer = Buffer(env, NUM_MACHINES, x)
+    #for x in range(SERVICE_TIME,INTER_ARRIVAL,1):
+    env = simpy.Environment()
+    packet_arrival = PacketArrival(env, INTER_ARRIVAL)
+    buffer = Buffer(env, NUM_MACHINES, SERVICE_TIME)
 
-        # start the arrival process
-        env.process(packet_arrival.arrival_process(buffer))
+    # start the arrival process
+    env.process(packet_arrival.arrival_process(buffer))
 
-        # simulate until SIM_TIME
-        env.run(until=SIM_TIME)
+    # simulate until SIM_TIME
+    env.run(until=SIM_TIME)
 
-        if (x==INTER_ARRIVAL-1):
-            occupancy_for_hist = buffer.q_memory
-        average_response_time.append(numpy.mean(buffer.response_time))
-        theoretical_response_time.append(float(1)/(float(1)/x-float(1)/INTER_ARRIVAL))
+    #if (x==INTER_ARRIVAL-1):
+    occupancy_for_hist = buffer.q_memory
+    average_response_time.append(numpy.mean(buffer.response_time))
+    theoretical_response_time.append(float(1)/(float(1)/SERVICE_TIME-float(1)/INTER_ARRIVAL))
 
-        average_buffer_occupancy.append(numpy.mean(buffer.q_memory))
-        theoretical_buffer_occupancy.append(theoretical_response_time[-1]/INTER_ARRIVAL)
-        ro = float(x)/INTER_ARRIVAL
-        ro_vector.append(ro)
+    average_buffer_occupancy.append(numpy.mean(buffer.q_memory))
+    theoretical_buffer_occupancy.append(theoretical_response_time[-1]/INTER_ARRIVAL)
+    ro = float(SERVICE_TIME)/INTER_ARRIVAL
+    ro_vector.append(ro)
 
 
     print ('AVG BUFFER OCCUPANCY',average_buffer_occupancy)
@@ -145,6 +145,9 @@ if __name__ == '__main__':
 
     pyplot.figure(2)
     pyplot.hist(occupancy_for_hist)
+
+    pyplot.figure(3)
+    pyplot.plot(occupancy_for_hist)
 
     pyplot.show()
 

@@ -8,7 +8,7 @@ from shared_folders import SharedFolder
 from matplotlib import pyplot
 import numpy
 
-SIM_TIME = 100000
+SIM_TIME = 10000000
 
 #******************************************************************************
 # Create the synthetic content synchronization network

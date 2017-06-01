@@ -4,9 +4,8 @@ import simpy
 import numpy
 from matplotlib import pyplot
 import random
-from packet import Packet
-from service import Carwash
-from arrival import CarArrival
+from process import Buffer
+from packetarrival import PacketArrival
 import math
 from scipy.stats import t
 
@@ -16,12 +15,12 @@ from scipy.stats import t
 # **********************************************************************************************************************
 RANDOM_SEED = 50
 INTER_ARRIVAL = 15
-SERVICE_TIME = 10
+SERVICE_TIME = 14
 NUM_MACHINES = 1
 MAX_BATCH = 10
 SIM_TIME = 100000
 MIN_BATCH = 1
-BUFFER_SIZE = 5
+BUFFER_SIZE = 3
 
 if __name__ == '__main__':
 
@@ -34,12 +33,14 @@ if __name__ == '__main__':
     #todo scegliere come far variare il buffer size o il max batch per valutare
 
     env = simpy.Environment()
-    car_arrival = CarArrival(env, INTER_ARRIVAL)
-    service = Carwash(env, NUM_MACHINES, SERVICE_TIME)
+    car_arrival = PacketArrival(env, INTER_ARRIVAL)
+    service = Buffer(env, NUM_MACHINES, SERVICE_TIME)
     env.process(car_arrival.arrival_process(service))
     env.run(until=SIM_TIME)
 
     print (service.response_time)
+    pyplot.figure(1)
+    pyplot.plot(service.response_time)
 
     meanResponseTimeWarmUp = numpy.mean(service.response_time)
 
@@ -82,6 +83,7 @@ if __name__ == '__main__':
 
         stopCondition = (confidence[1] - confidence[0]) / meanResponseExperiments
         if (stopCondition < 0.05):
+            print (confidence[1],confidence[0],stopCondition,meanResponseExperiments)
             break
 
 

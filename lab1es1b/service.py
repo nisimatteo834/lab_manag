@@ -18,7 +18,7 @@ MIN_BATCH = 1
 BUFFER_SIZE = 5
 
 
-class Carwash(object):
+class Service(object):
 
     # constructor
     def __init__(self, environ, num_machines, service_time):
