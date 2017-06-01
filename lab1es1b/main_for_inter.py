@@ -5,8 +5,8 @@ import numpy
 from matplotlib import pyplot
 import random
 from packet import Packet
-from service import Carwash
-from arrival import CarArrival
+from service import Service
+from arrival import PacketArrival
 import math
 from scipy.stats import t
 
@@ -23,29 +23,28 @@ SIM_TIME = 100000
 MIN_BATCH = 1
 BUFFER_SIZE = 5
 
+
+
+total_enviroment = []
+
+
 if __name__ == '__main__':
 
     random.seed(RANDOM_SEED)
 
-    # ********************************
-    # setup and perform the simulation
-    # ********************************
-
-    #todo scegliere come far variare il buffer size o il max batch per valutare
-
     env = simpy.Environment()
-    car_arrival = CarArrival(env, INTER_ARRIVAL)
-    service = Carwash(env, NUM_MACHINES, SERVICE_TIME)
+    car_arrival = PacketArrival(env, INTER_ARRIVAL)
+    service = Service(env, NUM_MACHINES, SERVICE_TIME)
     env.process(car_arrival.arrival_process(service))
     env.run(until=SIM_TIME)
 
-    print (service.response_time)
-
     meanResponseTimeWarmUp = numpy.mean(service.response_time)
+
+    total_enviroment.append(service.response_time)
 
     countSimTime = 2
     NUM_EXPERIMENTS = 0
-    confidence = (0,500)
+    confidence = (0,100)
     RememberConfidence = []
     meanResponseTime = []
 
@@ -59,6 +58,7 @@ if __name__ == '__main__':
 
         # RESPONSE TIME
         responseTime = service.response_time
+        total_enviroment.append(service.response_time)
 
         # appending Xi
         meanResponseTime.append(numpy.mean(responseTime))
@@ -84,7 +84,9 @@ if __name__ == '__main__':
         if (stopCondition < 0.05):
             break
 
-
+print(total_enviroment)
+pyplot.plot(total_enviroment)
+pyplot.show()
 
 
 

@@ -1,8 +1,5 @@
 import simpy
 import random
-import numpy
-from decimal import Decimal
-from matplotlib import pyplot
 
 class Buffer(object):
 
@@ -26,16 +23,13 @@ class Buffer(object):
         self.response_time = []
 
     def process(self):
-        print("Cars in the shop on arrival: ", self.qsize)
 
         self.q_memory.append(self.qsize)
         self.qsize += 1
 
-
-
         enter = self.env.now
 
-        # request a machine to process the new coming car
+        # request a machine to process the new incoming packet
         with self.machines.request() as request:
             yield request
 
@@ -48,4 +42,4 @@ class Buffer(object):
             # release the process machine
             self.qsize -= 1
 
-            self.response_time.append(self.env.now-enter)
+            self.response_time.append(self.env.now-enter) #total time in which the packet has been served

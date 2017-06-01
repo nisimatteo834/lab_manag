@@ -19,7 +19,7 @@ NUM_MACHINES = 1
 MAX_BATCH = 10
 SIM_TIME = 100000
 MIN_BATCH = 1
-BUFFER_SIZE = 15
+BUFFER_SIZE = 5
 
 # **********************************************************************************************************************
 # Car arrival
@@ -141,10 +141,12 @@ if __name__ == '__main__':
     average_response_time = []
     theoretical_response_time = []
     s_t_vector = []
+    rho_vector = []
     packetDroppedForSimulation = []
     dropOccurrence = []
     totalPacket = []
     testrun = []
+    loose_prob = []
 
     #todo scegliere come far variare il buffer size o il max batch per valutare
 
@@ -170,7 +172,13 @@ if __name__ == '__main__':
         average_buffer_occupancy.append(numpy.mean(carwash.q_memory))
  #       theoretical_buffer_occupancy.append(theoretical_response_time[-1]/INTER_ARRIVAL)
         s_t_vector.append(x)
+        rho_vector.append(x/INTER_ARRIVAL)
         packetDroppedForSimulation.append(carwash.numberPacketDropped)
+
+        #TODO TRYING THEROETICAL BUFFER OCCUPANCY
+        rho = float(x)/INTER_ARRIVAL
+        loose_prob.append((MAX_BATCH+MIN_BATCH/2)*(1-rho)*(numpy.power(rho,BUFFER_SIZE))/(1-numpy.power(rho,BUFFER_SIZE+1)))
+
         totalPacket.append(car_arrival.count)
         dropOccurrence.append(float(carwash.numberPacketDropped)/car_arrival.count)
         if (x==2):
@@ -205,6 +213,7 @@ if __name__ == '__main__':
     pyplot.plot(testrun)
 
 
+
     fig, (buff, resp) = pyplot.subplots(2,1)
     buff.plot(s_t_vector,average_buffer_occupancy,label='AVG BUFF')
     handles, labels = buff.get_legend_handles_labels()
@@ -216,6 +225,9 @@ if __name__ == '__main__':
     resp.legend(handles, labels)
 
     fig, (drop,ratio) = pyplot.subplots(2,1)
+
+    #ratio.plot(loose_prob,label='LOOSE PROB')
+
     drop.plot(s_t_vector,packetDroppedForSimulation,label='PACKET DROPPED')
     ratio.plot(s_t_vector,dropOccurrence,label='DROP OCC')
     handles, labels = drop.get_legend_handles_labels()
@@ -224,6 +236,10 @@ if __name__ == '__main__':
     ratio.legend(handles, labels)
 
     pyplot.show()
+
+
+#todo cancella buff e rt theoretical
+
 
 
 

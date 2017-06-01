@@ -1,0 +1,19 @@
+import datetime
+dictionary = []
+
+def readFromFile(file):
+    x = open(file,'r')
+    for line in x:
+        line_split = line.split()
+        dict = {'size': line_split[0],
+                'tp':line_split[1]}
+        dictionary.append(dict)
+        #print dictionary
+
+
+if __name__ == '__main__':
+    print (datetime.time)
+
+    readFromFile('throughput.txt')
+
+    print (datetime.time)
