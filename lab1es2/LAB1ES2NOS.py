@@ -18,7 +18,7 @@ NUM_MACHINES = 1
 BUFFER_SIZE = 5
 MIN_BATCH = 1
 MAX_BATCH = 8
-SIM_TIME = 5000
+SIM_TIME = 200
 
 
 
@@ -194,17 +194,25 @@ class cachePlusWeb(object):
             enter = self.env.now
         # request the server to process the packet
             with self.machines2.request() as request:
-                print (packetreceived.getId(), 'is asking for resource2', request)
-                yield request
-                print (packetreceived.getId(), 'is using the resource2', request)
-
-
-                # once the machine is free, wait until service is finished
+                # print (packetreceived.getId(), 'is asking for resource2', request)
+                # yield request
+                # print (packetreceived.getId(), 'is using the resource2', request)
                 self.service_time2 = random.expovariate(lambd=1.0/self.st2)
                 packetserved2 = self.queue2.get()
+                #todo sto cambiando sotto
+
+                print (packetserved2.getId(), 'is asking for resource2', request)
+                yield request
+                print (packetserved2.getId(), 'is using the resource2', request)
+
+                #todo finqua
+
+                # once the machine is free, wait until service is finished
+
                 print ('Packet ', packetserved2.getId(), 'served in Q2 at', self.env.now, 'shold end at', self.env.now + self.service_time2)
                 # yield an event to the simulator
                 yield self.env.timeout(self.service_time2)
+
 
             print ('Packet ', packetserved2.getId(), 'end in Q2 at', self.env.now)
             # release the back server
