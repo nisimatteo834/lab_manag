@@ -18,7 +18,6 @@ u_band_occ = 0
 d_band_occ = 0
 u_used_v = []
 d_used_v = []
-SIM_TIME = 5000
 
 def getDUsedV():
     return d_used_v

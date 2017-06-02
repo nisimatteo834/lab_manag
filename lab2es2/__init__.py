@@ -7,15 +7,6 @@ from matplotlib import pyplot
 from device import Device
 from shared_folders import  SharedFolder
 
-D_BAND = 20e6
-U_BAND = 5e6
-SIZE = 10e6
-MAX_CHUNCK = 1e6
-clients = 0
-u_band_occ = 0
-d_band_occ = 0
-users_online = {}
-
 
 def generate_network(num_dv, devices, shared_folders):
 

@@ -73,7 +73,7 @@ if __name__ == '__main__':
     fig.text(0.5, 0.04, 'Number of packets in the buffer', ha='center', va='center')
     fig.text(0.04, 0.5, 'Occurences', ha='center', va='center', rotation='vertical')
     big.hist(occupancy_for_hist_big_rho,label='Histogram with rho about 1')
-    little.hist(occupancy_for_hist_little_rho,label='Histogram with rho about 1')
+    little.hist(occupancy_for_hist_little_rho,label='Histogram with rho about 0')
     handles,labels = big.get_legend_handles_labels()
     big.legend(handles,labels)
     handles,labels = little.get_legend_handles_labels()

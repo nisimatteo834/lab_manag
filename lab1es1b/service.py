@@ -8,14 +8,8 @@ import Queue
 # **********************************************************************************************************************
 # Constants
 # **********************************************************************************************************************
-RANDOM_SEED = 50
-INTER_ARRIVAL = 15
-SERVICE_TIME = 1#todo put it to 1 in order to have a good plot
-NUM_MACHINES = 1
-MAX_BATCH = 10
-SIM_TIME = 100000
-MIN_BATCH = 1
-BUFFER_SIZE = 5
+
+BUFFER_SIZE = 20
 
 
 class Service(object):
@@ -56,6 +50,7 @@ class Service(object):
                 self.numberPacketDropped += 1
 
         self.q_memory.append(self.queue.qsize())
+
         #print("Cars in the shop in queue: ", self.queue.qsize())
 
         while (not self.queue.empty()):

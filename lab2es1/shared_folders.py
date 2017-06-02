@@ -8,16 +8,6 @@ from matplotlib import pyplot
 import numpy
 
 
-D_BAND = 20e6
-U_BAND = 5e6
-SIZE = 20e6
-clients = 0
-u_band_occ = 0
-d_band_occ = 0
-u_used_v = []
-d_used_v = []
-SIM_TIME = 5000
-
 #******************************************************************************
 # class representing the shared folders
 #******************************************************************************

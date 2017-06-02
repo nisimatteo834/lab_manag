@@ -101,7 +101,7 @@ class Device():
         while True:
             clients += 1
             #print(clients, ' users are currently online')
-            yield self.env.process(self.imOnline(1))
+            yield self.env.process(self.imOnline())
             clients-=1
             #print(clients,' users are currently online')
             yield self.env.process(self.imOffline())
