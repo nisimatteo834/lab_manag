@@ -4,17 +4,6 @@ import simpy
 import time
 import Queue
 
-D_BAND = 20e6
-U_BAND = 5e6
-SIZE = 10e6
-MAX_CHUNCK = 1e6
-clients = 0
-u_band_occ = 0
-d_band_occ = 0
-d_band_server = 0
-users_online = {}
-
-
 class SharedFolder(object):
     # cosftructor
     def __init__(self, id):

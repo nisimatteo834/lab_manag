@@ -11,14 +11,11 @@ from arrival import PacketArrival
 # **********************************************************************************************************************
 # Constants
 # **********************************************************************************************************************
-RANDOM_SEED = 50
+RANDOM_SEED = 48
 INTER_ARRIVAL = 15
 SERVICE_TIME = 1
 NUM_MACHINES = 1
-MAX_BATCH = 10
-SIM_TIME = 10000000
-MIN_BATCH = 1
-BUFFER_SIZE = 5
+SIM_TIME = 100000
 
 
 if __name__ == '__main__':
@@ -83,22 +80,14 @@ if __name__ == '__main__':
     print ('CONFIDENCE INTERVAL',confidence_interval)
     print (average_response_time[2])
 
-    pyplot.plot(testrun)
+    #pyplot.plot(testrun)
 
-
-
-    fig, (buff, resp) = pyplot.subplots(2,1)
-    buff.plot(s_t_vector,average_buffer_occupancy,label='AVG BUFF')
-    handles, labels = buff.get_legend_handles_labels()
-    buff.legend(handles, labels)
-
-
-    resp.plot(s_t_vector,average_response_time,label='AVG RT')
-    handles, labels = resp.get_legend_handles_labels()
-    resp.legend(handles, labels)
+    pyplot.figure()
+    pyplot.plot(s_t_vector,average_buffer_occupancy,label = 'AVG B.O.')
+    pyplot.xlabel('RESPONSE TIME')
+    pyplot.ylabel('B.O.')
 
     fig, (drop,ratio) = pyplot.subplots(2,1)
-
     drop.plot(s_t_vector,packetDroppedForSimulation,label='PACKETS DROPPED')
     ratio.plot(s_t_vector,dropOccurrence,label='DROP OCC')
     handles, labels = drop.get_legend_handles_labels()

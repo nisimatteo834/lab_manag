@@ -1,13 +1,18 @@
+#!/usr/bin/python
 from collections import deque
 from numpy import random
 import simpy
 import device
-from matplotlib import pyplot
-
 from device import Device
-from shared_folders import  SharedFolder
+from shared_folders import SharedFolder
+from matplotlib import pyplot
+import numpy
 
+SIM_TIME = 100000
 
+#******************************************************************************
+# Create the synthetic content synchronization network
+#******************************************************************************
 def generate_network(num_dv, devices, shared_folders):
 
     # shared folders per device - negative_binomial (s, mu)
@@ -91,10 +96,10 @@ def generate_network(num_dv, devices, shared_folders):
 # implements the simulation
 #******************************************************************************
 if __name__ == '__main__':
-
+    #global u_used_v
+    #global d_used_v
     # number of devices in the simulation
-    NUM_DEV = 500
-    SIM_TIME = 100000
+    NUM_DEV = 600
 
     # collection of devices
     devices = {}
@@ -102,6 +107,8 @@ if __name__ == '__main__':
     # collection of shared folders
     shared_folders = {}
 
+   # u_used_v.append(0)
+   # d_used_v.append(0)
     # create the content sharing network
     env = simpy.Environment()
     generate_network(NUM_DEV, devices, shared_folders)
@@ -118,39 +125,21 @@ if __name__ == '__main__':
 
     env.run(until=SIM_TIME)
 
+    fig,(down,up) = pyplot.subplots(2,1)
+    x = numpy.linspace(0,len(device.getDUsedV()),len(device.getDUsedV()),endpoint=True)
+    down.bar(x,device.getDUsedV())
+    down.set_ylabel("D used band")
+    x = numpy.linspace(0,len(device.getUUsedV()),len(device.getUUsedV()),endpoint=True)
+    up.bar(x,device.getUUsedV())
+    up.set_ylabel("UP used band")
 
-    #todo unisci le due liste e fai sort per avere consec.
-
-
-    for dev_id in devices:
-        print (dev_id)
-        for file in devices[dev_id].getDPeer():
-        #if len(devices[dev_id].getDPeer()) != 0:
-            print ('FROM PEER',devices[dev_id].getDPeer()[file]['avg_peers'],'  FILE -->',file, 'IN -->',devices[dev_id].getDPeer()[file]['time'])
-        for file in devices[dev_id].getDServer():
-        #if len(devices[dev_id].getDPeer()) != 0:
-            print ('FROM SERVER FILE -->',file, 'IN -->',devices[dev_id].getDServer()[file]['time'])
-
-    #print (device.getOccupancy())
-    pyplot.plot(device.getOccupancy(),label= 'SERVER ACTIVITY')
-    pyplot.ylabel('BAND OF THE SERVER')
-
-
-    for dev in devices:
-        if len(devices[dev].getActivePeers())!=0 and len(devices[dev].getUploadHist())!=0:
-
-            print ('Upload hist',devices[dev].getUploadHist())
-
-            string = 'PEERS AVAILABLE FOR DEVICE: ' + str(dev)
-            pyplot.figure(2)
-            pyplot.xlabel('Downloaded chunk')
-            pyplot.ylabel('Active Peers')
-            pyplot.plot(devices[dev].getActivePeers(),label = string)
-
-            pyplot.figure(3)
-            pyplot.xlabel('Chunks')
-            pyplot.xlabel('Band')
-            pyplot.plot(devices[dev].getUploadHist())
-
-            break
+    # fig,(down,up) = pyplot.subplots(2,1)
+    # x = numpy.linspace(0,len(device.getDUsedV()),len(device.getDUsedV()),endpoint=True)
+    pyplot.figure(2)
+    pyplot.hist(device.getDUsedV())
+    down.set_ylabel("D used band")
+    #todo scegliere se toglierla
+    # x = numpy.linspace(0,len(device.getUUsedV()),len(device.getUUsedV()),endpoint=True)
+    # up.hist(device.getUUsedV())
+    # up.set_ylabel("UP used band")
     pyplot.show()

@@ -3,19 +3,9 @@ from numpy import random
 import simpy
 import device
 from matplotlib import pyplot
-
+import numpy
 from device import Device
-from shared_folders import  SharedFolder
-
-D_BAND = 20e6
-U_BAND = 5e6
-SIZE = 10e6
-MAX_CHUNCK = 1e6
-clients = 0
-u_band_occ = 0
-d_band_occ = 0
-users_online = {}
-
+from shared_folders import SharedFolder
 
 def generate_network(num_dv, devices, shared_folders):
 
@@ -127,39 +117,35 @@ if __name__ == '__main__':
 
     env.run(until=SIM_TIME)
 
-
-    #todo unisci le due liste e fai sort per avere consec.
-
-
-    for dev_id in devices:
-        print (dev_id)
-        for file in devices[dev_id].getDPeer():
-        #if len(devices[dev_id].getDPeer()) != 0:
-            print ('FROM PEER',devices[dev_id].getDPeer()[file]['avg_peers'],'  FILE -->',file, 'IN -->',devices[dev_id].getDPeer()[file]['time'])
-        for file in devices[dev_id].getDServer():
-        #if len(devices[dev_id].getDPeer()) != 0:
-            print ('FROM SERVER FILE -->',file, 'IN -->',devices[dev_id].getDServer()[file]['time'])
-
-    #print (device.getOccupancy())
+    pyplot.figure(1)
     pyplot.plot(device.getOccupancy(),label= 'SERVER ACTIVITY')
     pyplot.ylabel('BAND OF THE SERVER')
 
+    pyplot.figure(2)
+    pyplot.xlabel('BAND OF THE SERVER')
+    pyplot.ylabel('OCCURENCES')
+    pyplot.hist(device.getOccupancy(),label = 'SERVER HIST')
 
+
+    var = 0
+    for_plot_variance = []
     for dev in devices:
         if len(devices[dev].getActivePeers())!=0 and len(devices[dev].getUploadHist())!=0:
 
-            print ('Upload hist',devices[dev].getUploadHist())
+            #I make this computation in order to retrieve a good example for the plot
+            if numpy.var(devices[dev].getActivePeers())> var:
+                var = numpy.var(devices[dev].getActivePeers())
+                for_plot_variance = devices[dev].getActivePeers()
+                d = devices[dev]
 
-            string = 'PEERS AVAILABLE FOR DEVICE: ' + str(dev)
-            pyplot.figure(2)
-            pyplot.xlabel('Downloaded chunk')
-            pyplot.ylabel('Active Peers')
-            pyplot.plot(devices[dev].getActivePeers(),label = string)
+    string = 'PEERS AVAILABLE FOR DEVICE: ' + str(d.getId())
+    pyplot.figure(3)
+    pyplot.xlabel('Downloaded chunk')
+    pyplot.ylabel('Active Peers')
+    pyplot.plot(for_plot_variance, label=string)
+    pyplot.figure(4)
+    pyplot.xlabel('Chunks')
+    pyplot.ylabel('Band')
+    pyplot.plot(d.getUploadHist())
 
-            pyplot.figure(3)
-            pyplot.xlabel('Chunks')
-            pyplot.xlabel('Band')
-            pyplot.plot(devices[dev].getUploadHist())
-
-            break
     pyplot.show()

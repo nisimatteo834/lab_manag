@@ -18,6 +18,7 @@ u_band_occ = 0
 d_band_occ = 0
 u_used_v = []
 d_used_v = []
+SIM_TIME = 5000
 
 def getDUsedV():
     return d_used_v
@@ -32,6 +33,7 @@ class Device():
         self.my_shared_folders = []
         self.my_upload_band_v = []
         self.my_download_band_v = []
+        self.tp_size = []
         self.my_u_used = 0
         self.my_d_used = 0
         self.q = Queue.Queue()
@@ -69,24 +71,34 @@ class Device():
     def add_shared_folder(self, sf):
         self.my_shared_folders.append(sf)
 
+    def readFromFile(self,file):
+        list =  []
+        x = open(file, 'r')
+        for line in x:
+            line_split = line.split()
+            dict = {'size': float(line_split[0]),
+                    'tp': float(line_split[1])/8}
+            list.append(dict)
+        return list
+
+
 
     def deviceP(self):
         global clients
+
+        self.tp_size = self.readFromFile('throughput.txt')
+
         while True:
             clients += 1
-            #print(clients, ' users online')
             yield self.env.process(self.imOnline(1))
             clients-=1
-            #print(clients,' users online')
             yield self.env.process(self.imOffline())
 
 
     def imOffline(self):
 
         inter_arrival = random.lognormal(mean=7.971,sigma=1.308)
-        #print (self.id,'Offline!',env.now)
         yield self.env.timeout(inter_arrival)
-        #print ('Offline finito!',env.now)
 
 
     def imOnline(self,timeout):
@@ -117,30 +129,32 @@ class Device():
             fold = self.getFolderFromId(randF)
             devices = fold.getDevices()
 
+            row = numpy.random.randint(0, len(self.tp_size)-1)
+
             stringa = str(self.id) + " in folder " + str(fold.getId())
             file = {'file': stringa,
-                    'size': SIZE}
+                    'size': self.tp_size[row]['size'],
+                    'tp':self.tp_size[row]['tp']}
 
             for d in devices:
                 if d.getId() != self.id:
-                    # stringa = str(self.id) +" a "+ str(d.getId()) + " in folder " + str(fold.getId())
-                    # file = {'file': stringa,
-                    #         'size': SIZE}
 
-                    if (final - self.env.now > file['size']/U_BAND):
-                        # self.my_u_used = self.my_u_used + U_BAND
-                        # self.my_upload_band_v.append(self.my_u_used)
-                        u_band_occ = u_band_occ + U_BAND
-                        u_used_v.append(u_band_occ)
-                        #print ('STO UPLOAD',self.id,u_band_occ)
+                    try:
 
-                        #print (file,env.now)
-                        d.pushQueue(file)
-                        yield self.env.timeout(file['size']/U_BAND)
-                        u_band_occ = u_band_occ - U_BAND
-                        u_used_v.append(u_band_occ)
-                        #print('Upload finito', env.now,self.id,str(d.getId()))
-                        #print ('UPLOAD FIN',self.id,u_band_occ)
+                        if (final - self.env.now > file['size']/file['tp']):
+                            u_band_occ = u_band_occ + file['tp']
+                            u_used_v.append(u_band_occ)
+                            #print ('STO UPLOAD',self.id,u_band_occ)
+
+                            #print (file,env.now)
+                            d.pushQueue(file)
+                            yield self.env.timeout(file['size']/file['tp'])
+                            u_band_occ = u_band_occ - file['tp']
+                            u_used_v.append(u_band_occ)
+
+                    except Exception as e:
+                        print (e.message)
+
 
 
     def inDownload(self,final):
@@ -148,16 +162,16 @@ class Device():
         # the device pulls packets from the queue and downloads them till the queue is empty
         global d_band_occ
         global d_used_v
-        # todo se l'online finisce prima della fine del download come esce dal while?? dopo l'if mettere: else: return ?
+
         while not self.q.empty():
             x = self.q.get()
-            if (final-self.env.now>x['size']/D_BAND):
-                d_band_occ = d_band_occ + D_BAND
-                d_used_v.append(d_band_occ)
-                #print (x,self.id,env.now)
-                #print ('STO SCARICANDO QUALCOSA',env.now,self.id)
-                yield self.env.timeout(x['size']/D_BAND)
-                d_band_occ = d_band_occ - D_BAND
-                d_used_v.append(d_band_occ)
-            #self.coda = False
-        #print ('Ho SCARICATO tutto',env.now,self.id)
+            try:
+                if (final-self.env.now>x['size']/x['tp']):
+                    d_band_occ = d_band_occ + x['tp']
+                    d_used_v.append(d_band_occ)
+
+                    yield self.env.timeout(x['size']/x['tp'])
+                    d_band_occ = d_band_occ - x['tp']
+                    d_used_v.append(d_band_occ)
+            except Exception as e:
+                print (e.message)
