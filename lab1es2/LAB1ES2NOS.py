@@ -18,7 +18,7 @@ NUM_MACHINES = 1
 BUFFER_SIZE = 5
 MIN_BATCH = 1
 MAX_BATCH = 8
-SIM_TIME = 200
+SIM_TIME = 2000
 
 
 
@@ -157,7 +157,7 @@ class cachePlusWeb(object):
                 packetserved = self.queue1.get()
                 print ('Packet ', packetserved.getId(), 'served by Q1 at', self.env.now, 'should end at', self.env.now + self.service_time1)
                 # yield an event to the simulator
-                yield self.env.timeout(self.service_time1)
+            yield self.env.timeout(self.service_time1)
 
             print ('Packet ', packetserved.getId(), 'exits from FrontEnd at ', self.env.now)
             # release the  cache
@@ -202,6 +202,7 @@ class cachePlusWeb(object):
                 #todo sto cambiando sotto
 
                 print (packetserved2.getId(), 'is asking for resource2', request)
+                print (packetserved2.getId(),self.service_time2,self.env.now+self.service_time2)
                 yield request
                 print (packetserved2.getId(), 'is using the resource2', request)
 
@@ -211,7 +212,7 @@ class cachePlusWeb(object):
 
                 print ('Packet ', packetserved2.getId(), 'served in Q2 at', self.env.now, 'shold end at', self.env.now + self.service_time2)
                 # yield an event to the simulator
-                yield self.env.timeout(self.service_time2)
+            yield self.env.timeout(self.service_time2)
 
 
             print ('Packet ', packetserved2.getId(), 'end in Q2 at', self.env.now)
