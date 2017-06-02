@@ -11,14 +11,14 @@ import Queue
 # **********************************************************************************************************************
 # Constants
 # **********************************************************************************************************************
-RANDOM_SEED = 42
+RANDOM_SEED = 50
 INTER_ARRIVAL = 22
-SERVICE_TIME = 20   # todo put it to 1 in order to have a good plot
+SERVICE_TIME = 10   # todo put it to 1 in order to have a good plot
 NUM_MACHINES = 1
-BUFFER_SIZE = 20
+BUFFER_SIZE = 5
 MIN_BATCH = 1
-MAX_BATCH = 5
-SIM_TIME = 1000
+MAX_BATCH = 8
+SIM_TIME = 5000
 
 
 
@@ -42,7 +42,7 @@ class Arrival(object):
         while True:                             # never exit the loop
 
             # sample the time to next arrival
-            inter_arrival = random.expovariate(lambd=1.0)*self.arrival_time
+            inter_arrival = random.expovariate(lambd=1.0/self.arrival_time)
 
             number_packets = numpy.random.uniform(MIN_BATCH,MAX_BATCH,1).__int__()
 
@@ -153,7 +153,7 @@ class cachePlusWeb(object):
                 yield request
 
                 # once the machine is free, wait until service is finished
-                self.service_time1 = random.expovariate(lambd=1.0)*self.st1
+                self.service_time1 = random.expovariate(lambd=1.0/self.st1)
                 packetserved = self.queue1.get()
                 print ('Packet ', packetserved.getId(), 'served by Q1 at', self.env.now, 'should end at', self.env.now + self.service_time1)
                 # yield an event to the simulator
@@ -168,9 +168,10 @@ class cachePlusWeb(object):
 
             # if this value is below the threshold, the packet goes to the backEnd server
             if p <= tsh:
-                yield (self.env.process(self.backEnd(packetserved)))
+                 (self.env.process(self.backEnd(packetserved))) #todo yield fa casino
             else:               # otherwise the packet request is accomplished only by the cache
                 self.response_time2.append(0)
+                print ('packet', packetserved.getId(), 'is done')
 
             self.total_response_time.append(self.env.now-enter)
 
@@ -179,7 +180,7 @@ class cachePlusWeb(object):
         # if there is still some space in the web server buffer add a packet to the queue
         if self.queue2.qsize() < self.bs2:
             self.queue2.put(packetreceived)
-            print ('Packet ',packetreceived,'in Q2 at ', self.env.now)
+            print ('Packet ',packetreceived.getId(),'in Q2 at ', self.env.now)
         # otherwise discard it
         # after setting the queue, update queue length
         else:
@@ -199,13 +200,13 @@ class cachePlusWeb(object):
 
 
                 # once the machine is free, wait until service is finished
-                self.service_time2 = random.expovariate(lambd=1.0)*self.st2
-                packetserved = self.queue2.get()
-                print ('Packet ', packetserved.getId(), 'served in Q2 at', self.env.now, 'shold end at', self.env.now + self.service_time2)
+                self.service_time2 = random.expovariate(lambd=1.0/self.st2)
+                packetserved2 = self.queue2.get()
+                print ('Packet ', packetserved2.getId(), 'served in Q2 at', self.env.now, 'shold end at', self.env.now + self.service_time2)
                 # yield an event to the simulator
                 yield self.env.timeout(self.service_time2)
 
-            print ('Packet ', packetserved.getId(), 'end in Q2 at', self.env.now)
+            print ('Packet ', packetserved2.getId(), 'end in Q2 at', self.env.now)
             # release the back server
             self.response_time2.append(self.env.now-enter)
 
@@ -243,9 +244,9 @@ if __name__ == '__main__':
     bs2 = BUFFER_SIZE
     nm1 = NUM_MACHINES
     nm2 = NUM_MACHINES
-    st1 = SERVICE_TIME/20
+    st1 = SERVICE_TIME/10
     st2 = SERVICE_TIME
-    tsh = 1
+    tsh = 0.7
     cacheplusweb = cachePlusWeb(env, bs1, nm1, st1, bs2, nm2, st2, tsh)
 
     # start the arrival process
