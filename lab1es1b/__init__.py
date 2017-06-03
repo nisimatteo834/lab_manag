@@ -5,7 +5,7 @@ import numpy
 from matplotlib import pyplot
 import random
 from packet import Packet
-from service import Service
+from service2 import Service
 from arrival import PacketArrival
 
 # **********************************************************************************************************************
@@ -15,7 +15,7 @@ RANDOM_SEED = 48
 INTER_ARRIVAL = 15
 SERVICE_TIME = 1
 NUM_MACHINES = 1
-SIM_TIME = 100000
+SIM_TIME = 100
 
 
 if __name__ == '__main__':

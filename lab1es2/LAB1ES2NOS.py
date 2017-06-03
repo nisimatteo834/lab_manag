@@ -11,7 +11,7 @@ import Queue
 # **********************************************************************************************************************
 # Constants
 # **********************************************************************************************************************
-RANDOM_SEED = 50
+RANDOM_SEED = 52
 INTER_ARRIVAL = 22
 SERVICE_TIME = 10   # todo put it to 1 in order to have a good plot
 NUM_MACHINES = 1
@@ -151,13 +151,12 @@ class cachePlusWeb(object):
             # request the cache to process a new packet
             with self.machines1.request() as request:
                 yield request
-
                 # once the machine is free, wait until service is finished
                 self.service_time1 = random.expovariate(lambd=1.0/self.st1)
                 packetserved = self.queue1.get()
                 print ('Packet ', packetserved.getId(), 'served by Q1 at', self.env.now, 'should end at', self.env.now + self.service_time1)
                 # yield an event to the simulator
-            yield self.env.timeout(self.service_time1)
+                yield self.env.timeout(self.service_time1)
 
             print ('Packet ', packetserved.getId(), 'exits from FrontEnd at ', self.env.now)
             # release the  cache
@@ -186,6 +185,7 @@ class cachePlusWeb(object):
         else:
             print ('Packet ',packetreceived,'has been dropped by Q2 ',self.env.now)
             self.numberPacketDroppedBack += 1
+
         self.bo2.append(self.queue2.qsize())
 
         print("Packets in buffer2: ", self.queue2.qsize())
@@ -194,6 +194,7 @@ class cachePlusWeb(object):
             enter = self.env.now
         # request the server to process the packet
             with self.machines2.request() as request:
+                yield request
                 # print (packetreceived.getId(), 'is asking for resource2', request)
                 # yield request
                 # print (packetreceived.getId(), 'is using the resource2', request)
@@ -203,7 +204,6 @@ class cachePlusWeb(object):
 
                 print (packetserved2.getId(), 'is asking for resource2', request)
                 print (packetserved2.getId(),self.service_time2,self.env.now+self.service_time2)
-                yield request
                 print (packetserved2.getId(), 'is using the resource2', request)
 
                 #todo finqua
@@ -212,12 +212,14 @@ class cachePlusWeb(object):
 
                 print ('Packet ', packetserved2.getId(), 'served in Q2 at', self.env.now, 'shold end at', self.env.now + self.service_time2)
                 # yield an event to the simulator
-            yield self.env.timeout(self.service_time2)
+                yield self.env.timeout(self.service_time2)
 
 
             print ('Packet ', packetserved2.getId(), 'end in Q2 at', self.env.now)
             # release the back server
             self.response_time2.append(self.env.now-enter)
+            print ('prova', self.queue2.qsize())
+
 
 # **********************************************************************************************************************
 # the "main" of the simulation
