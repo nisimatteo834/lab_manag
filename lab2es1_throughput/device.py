@@ -14,17 +14,25 @@ D_BAND = 20e6
 U_BAND = 5e6
 SIZE = 10e6
 clients = 0
+lastupdate = 0
+clients_v = []
 u_band_occ = 0
 d_band_occ = 0
 u_used_v = []
 d_used_v = []
 SIM_TIME = 5000
 
+
 def getDUsedV():
     return d_used_v
 
+
 def getUUsedV():
     return u_used_v
+
+
+def getClientV():
+    return clients_v
 
 class Device():
     # cosftructor
@@ -39,6 +47,7 @@ class Device():
         self.q = Queue.Queue()
         self.env = env
         self.coda = True
+
 
     # fancy printing as string
     def __str__(self):
@@ -85,14 +94,23 @@ class Device():
 
     def deviceP(self):
         global clients
+        global lastupdate
 
         self.tp_size = self.readFromFile('throughput.txt')
 
         while True:
             clients += 1
+            if self.env.now == lastupdate and not len(clients_v) == 0:
+                clients_v.pop()
+            lastupdate = self.env.now
+            clients_v.append(clients)
             yield self.env.process(self.imOnline(1))
             clients-=1
             yield self.env.process(self.imOffline())
+            if self.env.now == lastupdate:
+                clients_v.pop()
+            lastupdate = self.env.now
+            clients_v.append(clients)
 
 
     def imOffline(self):
