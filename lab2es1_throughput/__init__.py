@@ -99,7 +99,7 @@ if __name__ == '__main__':
     #global u_used_v
     #global d_used_v
     # number of devices in the simulation
-    NUM_DEV = 600
+    NUM_DEV = 100
 
     # collection of devices
     devices = {}
@@ -125,19 +125,28 @@ if __name__ == '__main__':
 
     env.run(until=SIM_TIME)
 
-    fig,(down,up) = pyplot.subplots(2,1)
+    print('mean Download', numpy.mean(device.getDUsedV()))
+    print('mean Upload', numpy.mean(device.getUUsedV()))
+    print('mean users', numpy.mean(device.getClientV()))
+
+    fig,(down,up,active_clients) = pyplot.subplots(3,1)
     x = numpy.linspace(0,len(device.getDUsedV()),len(device.getDUsedV()),endpoint=True)
     down.bar(x,device.getDUsedV())
     down.set_ylabel("D used band")
     x = numpy.linspace(0,len(device.getUUsedV()),len(device.getUUsedV()),endpoint=True)
     up.bar(x,device.getUUsedV())
     up.set_ylabel("UP used band")
+    # x = numpy.linspace(0,len(device.getClientV()),len(device.getClientV()),endpoint=True)
+    active_clients.plot(device.getClientV())
+    active_clients.set_ylabel("Active Clients")
 
     # fig,(down,up) = pyplot.subplots(2,1)
     # x = numpy.linspace(0,len(device.getDUsedV()),len(device.getDUsedV()),endpoint=True)
     pyplot.figure(2)
     pyplot.hist(device.getDUsedV())
     down.set_ylabel("Occurences")
+    pyplot.hist(device.getUUsedV())
+    down.set_ylabel("D used band")
     #todo scegliere se toglierla
     # x = numpy.linspace(0,len(device.getUUsedV()),len(device.getUUsedV()),endpoint=True)
     # up.hist(device.getUUsedV())
