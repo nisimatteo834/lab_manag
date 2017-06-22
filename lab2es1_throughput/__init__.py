@@ -137,7 +137,7 @@ if __name__ == '__main__':
     # x = numpy.linspace(0,len(device.getDUsedV()),len(device.getDUsedV()),endpoint=True)
     pyplot.figure(2)
     pyplot.hist(device.getDUsedV())
-    down.set_ylabel("D used band")
+    down.set_ylabel("Occurences")
     #todo scegliere se toglierla
     # x = numpy.linspace(0,len(device.getUUsedV()),len(device.getUUsedV()),endpoint=True)
     # up.hist(device.getUUsedV())

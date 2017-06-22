@@ -4,7 +4,6 @@ import simpy
 import numpy
 from matplotlib import pyplot
 import random
-from packet import Packet
 from service2 import Service
 from arrival2 import PacketArrival
 
